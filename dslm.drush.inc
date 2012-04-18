@@ -39,6 +39,9 @@ function dslm_drush_command() {
     'description' => 'DSLM site information',
     'arguments' => $arguments,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
+    'options' => array(
+      'format' => 'Passes through drush_format instead of drush_log.',
+    ),
   );
 
   $items['dslm-cores'] = array(
@@ -90,16 +93,24 @@ function drush_dslm_info() {
     return drush_set_error($dslm->lastError());
   }
 
-  $out = "Core: {$info['core']}\n";
+  $log = "Core: {$info['core']}\n";
+  $info['core'] = $info['core'];
   if(!empty($info['profiles'])) {
-    $out .= "Managed Profiles: ";
+    $log .= "Managed Profiles: ";
     foreach($info['profiles'] as $profile) {
-      $out .= "$profile ";
+      $log .= "$profile ";
+      $info['profiles'][] = $profile;
     }
   }
+  
+  if ($format = drush_get_option('format', FALSE)) {
+    drush_print(drush_format($info, '', $format));
+  }
+  else {
+    // Render the display
+    drush_log(trim($log), 'ok');
+  }
 
-  // Render the display
-  drush_log(trim($out), 'ok');
   return TRUE;
 }
 
@@ -317,7 +328,7 @@ function _dslm_get_base() {
 
   // Try to get a base from one of the appropriate sources
   if ($base_check = drush_get_option('dslm-base', FALSE)) {
-    // We have this wet with --drupal-base on the cli
+    // We have this wet with --dslm-base on the cli
     $base = $base_check;
   }
   elseif ($base_check = drush_get_option('dslm_base', FALSE)) {
