@@ -269,8 +269,13 @@ class Dslm {
       return FALSE;
     }
 
-    // Run the profile and core switches
+    // Run the core switches.
     $core = $this->switchCore($core, $dest_dir, TRUE);
+
+    // If we got an error from switchCore, return FALSE.
+    if ($this->last_error) {
+      return FALSE;
+    }
 
     return TRUE;
   }
