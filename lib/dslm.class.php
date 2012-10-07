@@ -235,9 +235,15 @@ class Dslm {
       return FALSE;
     }
 
+    foreach ($managed_profiles as $name => $versions) {
+      foreach ($versions as $version) {
+        $profile_out[$name][] = $version;
+      }
+    }
+
     $out = array(
       'core' => $core,
-      'profiles' => $managed_profiles,
+      'profiles' => $profile_out,
     );
 
     return $out;
@@ -414,13 +420,19 @@ class Dslm {
     $dest_profiles_dir = "$dir/profiles";
     $source_profile_dir = "$base/profiles/$name-$version";
 
-    // See if the profile is already linked
-    if(file_exists("$dir/profiles/$name") && !$upgrade) {
-      // TODO add a method that checks to see if this is a link
-      // and it's a link to our profiles base, if so, see if we're
-      // in the upgrade business based on method options
-      $this->last_error = "The profile '$name' is already linked to this site.";
-      return FALSE;
+    if (!$upgrade) {
+      if (file_exists("$dir/profiles/$name")) {
+        $this->last_error = "The profile '$name' is already linked to this site.";
+        return FALSE;
+      }
+    }
+    else {
+      if (!file_exists("$dir/profiles/$name")) {
+        $this->last_error = "Attempting to update profile that doesn't exist: $name.";
+        return FALSE;
+      }
+      // Remove the previous symlink.
+      $this->removeSymlink("$dir/profiles/$name");
     }
 
     // Relative path between the two profiles folders
@@ -430,6 +442,17 @@ class Dslm {
     symlink("$relpath/$name-$version", "$dir/profiles/$name");
 
     return "$name-$version";
+  }
+
+  public function removeProfile($profile_name, $dir = FALSE) {
+    if (!$dir) {
+      $dir = getcwd();
+    }
+    $profiles_dir = "$dir/profiles";
+    if (!file_exists("$profiles_dir/$profile_name")) {
+      return FALSE;
+    }
+    return $this->removeSymlink("$profiles_dir/$profile_name");
   }
 
   /**
@@ -467,7 +490,7 @@ class Dslm {
         $name = basename(readlink($fullpath));
         if ($matches = $this->isProfileString($name)) {
           if ($this->isValidProfile($matches[1], $matches[2])) {
-            $managed_profiles[] = $name;
+            $managed_profiles[$matches[1]][] = $matches[2];
           }
         }
       }
@@ -622,22 +645,31 @@ class Dslm {
         $dirname = basename(dirname($target));
         // Check to make sure the dirname matches a core regex
         if ($this->isCoreString($dirname)) {
-          if ($this->isWindows()) {
-            $target = readlink($full);
-            // Windows needs rmdir if it's a link to a directory
-            if (is_dir($target)) {
-              rmdir($full);
-            }
-            else {
-              unlink($full);
-            }
-          }
-          else {
-            // We're a sane operating system, just remove the link
-            unlink($full);
-          }
+          // Remove the symlink.
+          $this->removeSymlink($full);
         }
       }
+    }
+    return TRUE;
+  }
+
+  /**
+   * Internal helper function to remove a symlink.
+   */
+  protected function removeSymlink($full_path) {
+    if ($this->isWindows()) {
+      $target = readlink($full_path);
+      // Windows needs rmdir if it's a link to a directory
+      if (is_dir($target)) {
+        rmdir($full_path);
+      }
+      else {
+        unlink($full_path);
+      }
+    }
+    else {
+      // We're a sane operating system, just remove the link
+      unlink($full_path);
     }
     return TRUE;
   }
