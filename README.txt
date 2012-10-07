@@ -43,8 +43,11 @@ Will create a new site prompting you to choose which core it should be linked to
 drush dslm-info
 Will display the current core and any managed profiles linked to the directory you're in.
 
-drush dslm-switch-core
+drush dslm-switch-core [core]-[version]
 Will prompt you to switch the core. If you specify a valid core on the command line, it will be used, otherwise, you will be prompted.
 
-drush dslm-add-profile
-Will prompt you to add a managed installation profile. If you specify a valid profile on the command line, it will be used, otherwise, you will be prompted.
+drush dslm-add-profile [profile name] [profile version]
+Will prompt you to add a managed installation profile. If you specify a valid profile on the command line, it will be used, otherwise, you will be prompted. If option "--upgrade" is passed, dslm will remove the already symlinked profile of "profile name" and add your new specified (or prompted) version.
+
+drush dslm-remove-profile [profile name]
+Removes a managed profile.
