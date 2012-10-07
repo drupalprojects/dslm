@@ -268,6 +268,10 @@ function drush_dslm_add_profile() {
       return FALSE;
     }
   }
+  if ($profile_name && !$profiles[$profile_name]) {
+    drush_log('Invalid profile name given.', 'error');
+    return FALSE;
+  }
 
   // Get the version via args or interactively
   $profile_version = isset($args[2]) ? $args[2] : FALSE;
@@ -277,9 +281,10 @@ function drush_dslm_add_profile() {
       $choices[$v] = $v;
     }
     $profile_version = drush_choice($choices);
-    if (!$profile_version || !in_array($profile_version, $profiles[$profile_name]['all'])) {
-      return FALSE;
-    }
+  }
+  if (!in_array($profile_version, $profiles[$profile_name]['all'])) {
+    drush_log('Invalid profile version given.', 'error');
+    return FALSE;
   }
 
   // Run the DSLM manageProfile method to add the profile or deal with an error
