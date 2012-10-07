@@ -270,7 +270,7 @@ function drush_dslm_add_profile() {
   }
 
   // Get the version via args or interactively
-  $profile_Version = isset($args[2]) ? $args[2] : FALSE;
+  $profile_version = isset($args[2]) ? $args[2] : FALSE;
   if (!$profile_version) {
     $choices = array();
     foreach ($profiles[$profile_name]['all'] as $k => $v) {
