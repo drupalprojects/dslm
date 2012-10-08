@@ -450,6 +450,7 @@ class Dslm {
     }
     $profiles_dir = "$dir/profiles";
     if (!file_exists("$profiles_dir/$profile_name")) {
+      $this->last_error = 'Invalid profile given.';
       return FALSE;
     }
     return $this->removeSymlink("$profiles_dir/$profile_name");

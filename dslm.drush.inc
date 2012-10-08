@@ -175,7 +175,7 @@ function drush_dslm_new() {
   // Pull the args
   $args = drush_get_arguments();
   if (!isset($args[1])) {
-    return drush_set_error('DSLM: Please provide a site destination');
+    return drush_set_error(dt('Please provide destination for your DSLM site.'));
   }
   else {
     $site_dest = $args[1];
@@ -213,7 +213,7 @@ function drush_dslm_new() {
     return drush_set_error($dslm->lastError());
   }
   else {
-    drush_log(dt('Your site has been linked in !dir', array('!dir' => $site_dest)), 'ok');
+    drush_log(dt('Your site has been linked in !dir.', array('!dir' => $site_dest)), 'success');
     return TRUE;
   }
 }
@@ -246,7 +246,7 @@ function drush_dslm_switch_core() {
   else {
     // @todo: get $dslm->newSite to return validated switch information rather than TRUE
     //  for reporting here.
-    drush_log('The links have been switched', 'ok');
+    drush_log('The links have been switched.', 'success');
     return TRUE;
   }
 }
@@ -267,6 +267,10 @@ function drush_dslm_add_profile() {
 
   // Get the profile name via args or interactively
   $profile_name = isset($args[1]) ? $args[1] : FALSE;
+
+  // Version might be coming through the profile_name as in my_profile-1.2
+  list($profile_name, $profile_version) = explode('-', $profile_name);
+  
   if (!$profile_name) {
     $choices = array();
     foreach ($profiles as $k => $v) {
@@ -278,12 +282,15 @@ function drush_dslm_add_profile() {
     }
   }
   if ($profile_name && !$profiles[$profile_name]) {
-    drush_log('Invalid profile name given.', 'error');
-    return FALSE;
+    return drush_set_error(dt('Invalid profile name given.'));
   }
 
-  // Get the version via args or interactively
-  $profile_version = isset($args[2]) ? $args[2] : FALSE;
+  // If profile version not provided as single string with name, check arg 2
+  // as in "drush dslm-add-profile my_profile 1.2"
+  $profile_version = isset($args[2]) ? $args[2] : $profile_version;
+  
+  // If we still dont have a version number, prompt the user with the
+  // available options.
   if (!$profile_version) {
     $choices = array();
     foreach ($profiles[$profile_name]['all'] as $k => $v) {
@@ -291,23 +298,32 @@ function drush_dslm_add_profile() {
     }
     $profile_version = drush_choice($choices);
   }
+
+  // Validate that the profile name and version matches a dslm managed profile.
   if (!in_array($profile_version, $profiles[$profile_name]['all'])) {
-    drush_log('Invalid profile version given.', 'error');
-    return FALSE;
+    return drush_set_error(dt('Invalid profile version given.'));
   }
 
+  // Determine if we are upgrading a currently managed dslm profile.
   $upgrade = drush_get_option('upgrade', FALSE);
 
   // Run the DSLM manageProfile method to add the profile or deal with an error
   if ($dslm->manageProfile($profile_name, $profile_version, FALSE, $upgrade)) {
-    drush_log("The profile '$profile_name' version '$profile_version' has been added", 'ok');
+    if ($upgrade) {
+      drush_log(dt('The DSLM profile !profile has been upgraded to version !version.', array('!profile' => $profile_name, '!version' => $profile_version)), 'success');
+    }
+    else {
+      drush_log(dt('The DSLM profile !profile-!version has been added.', array('!profile' => $profile_name, '!version' => $profile_version)), 'success');
+    }
   }
   else {
-    drush_log($dslm->lastError(), 'error');
+    return drush_set_error($dslm->lastError());
   }
-
 }
 
+/**
+ * Command callback. Removes a profile.
+ */
 function drush_dslm_remove_profile() {
   // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
   if (!$dslm = _dslm_bootstrap()) {
@@ -322,6 +338,11 @@ function drush_dslm_remove_profile() {
 
   // Get the profile name via args or interactively.
   $profile_name = isset($args[1]) ? $args[1] : FALSE;
+
+  // Version might be coming through the profile_name as in my_profile-1.2, we only
+  // care about the name here.
+  list($profile_name, $profile_version) = explode('-', $profile_name);
+
   if (!$profile_name) {
     if (!empty($info['profiles'])) {
       foreach ($info['profiles'] as $profile => $versions) {
@@ -330,15 +351,15 @@ function drush_dslm_remove_profile() {
       $profile_name = drush_choice($choices);
     }
     else {
-      drush_log('No profiles available to be removed', 'error');
+      return drush_set_error(dt('No DSLM profiles available to be removed.'));
     }
   }
 
   if ($dslm->removeProfile($profile_name)) {
-    drush_log("The profile '$profile_name' has been removed.", 'ok');
+    drush_log(dt('The DSLM profile !profile has been removed.', array('!profile' => $profile_name)), 'success');
   }
   else {
-    drush_log($dslm->lastError(), 'error');
+    return drush_set_error($dslm->lastError());
   }
 }
 
@@ -349,7 +370,7 @@ function drush_dslm_remove_profile() {
  */
 function _dslm_bootstrap() {
   if (!$base = _dslm_get_base()) {
-    return drush_set_error('DSLM: Please set a dslm drupal base in order for DSLM commands to work.');
+    return drush_set_error(dt('Please set a DSLM Drupal base in order for DSLM commands to work.'));
   }
 
   // Instantiate the dslm object
