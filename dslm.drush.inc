@@ -48,12 +48,18 @@ function dslm_drush_command() {
     'description' => 'DSLM Show Cores',
     'arguments' => $arguments,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
+    'options' => array(
+      'format' => 'Passes through drush_format instead of drush_log.',
+    ),
   );
 
   $items['dslm-profiles'] = array(
     'description' => 'DSLM Show Profiles',
     'arguments' => $arguments,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
+    'options' => array(
+      'format' => 'Passes through drush_format instead of drush_log.',
+    ),
   );
 
   $items['dslm-new'] = array(
@@ -108,7 +114,7 @@ function drush_dslm_info() {
     $log .= "Managed Profiles: ";
     foreach ($info['profiles'] as $profile => $versions) {
       $log .= "$profile-" . implode(', ', $versions);
-      $info['profiles'][$profile] = $versions;
+      $info['profiles'][$profile][] = $versions;
     }
   }
 
@@ -138,9 +144,15 @@ function drush_dslm_cores() {
   // Iterate through the cores array and print them out
   foreach ($cores['all'] as $key => $core) {
     $out .= "$core\n";
+    $info['cores'][$core] = $core;
   }
-
-  drush_log(trim($out), 'ok');
+  
+  if ($format = drush_get_option('format', FALSE)) {
+    drush_print(drush_format($info, '', $format));
+  }
+  else {
+    drush_log(trim($out), 'ok');
+  }
   return TRUE;
 }
 
@@ -161,10 +173,16 @@ function drush_dslm_profiles() {
     $out .= "$name:\n";
     foreach($profile['all'] as $version) {
       $out .= "  $version\n";
+      $info['profiles'][$name][] = $version;
     }
   }
-
-  drush_log(trim($out), 'ok');
+  
+  if ($format = drush_get_option('format', FALSE)) {
+    drush_print(drush_format($info, '', $format));
+  }
+  else {
+    drush_log(trim($out), 'ok');
+  }
   return TRUE;
 }
 
