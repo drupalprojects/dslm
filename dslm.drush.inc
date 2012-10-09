@@ -221,7 +221,7 @@ function drush_dslm_new() {
   if (!$core) {
     $core_list = $dslm->getCores();
     $pick_core = drush_choice($core_list['all']);
-    if (!$pick_core) {
+    if ($pick_core === FALSE) {
       return FALSE;
     }
     $core = $core_list['all'][$pick_core];
