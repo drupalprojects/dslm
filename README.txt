@@ -38,16 +38,24 @@ The base can be set using any of the options below. It will first look for the c
 DSLM Commands
 =============
 drush dslm-new [site-directory] [core]
-Will create a new site prompting you to choose which core it should be linked to. If you pass the --latest flag, the latest core will automatically be chosen. You may optionally pass a valid core on the command line to run non-interactively (ie "drush dslm-new newSite drupal-7.12")
+Creates a new site within the directory of your choice using the Drupal core-version of your choice. If you pass the --latest flag, the latest core will automatically be chosen. If you do not specify a Drupal core-version, you will be prompted for a choice. (example usage: "drush dslm-new newSite drupal-7.12")
+
+drush dslm-cores
+Returns a listing of available DSLM cores. --format compatible
+
+drush dslm-profiles
+Returns a listing of available DSLM profiles. --format compatible
+
+<<< Execute the following commands within a site set up with DSLM >>>
 
 drush dslm-info
-Will display the current core and any managed profiles linked to the directory you're in.
+Returns the current core and any managed profiles symlinked to the site of your cwd. --format compatible
 
 drush dslm-switch-core [core]-[version]
-Will prompt you to switch the core. If you specify a valid core on the command line, it will be used, otherwise, you will be prompted.
+Switches the core symlinks within your cwd's site, to a different version of Drupal core. If you do not specify a core, an interactive prompt will ask. (example usage: "drush dslm-switch-core drupal-7.15")
 
-drush dslm-add-profile [profile name] [profile version]
-Will prompt you to add a managed installation profile. If you specify a valid profile on the command line, it will be used, otherwise, you will be prompted. If option "--upgrade" is passed, dslm will remove the already symlinked profile of "profile name" and add your new specified (or prompted) version.
+drush dslm-add-profile [profile name]-[profile version]
+Creates a symlink within the 'profiles' directory to a DSLM managed installation profile. If you do not specify a profile name and/or version, you will be prompted for a choice. If the option "--upgrade" is passed, DSLM will remove the already symlinked profile and add your new specified (or prompted) version. (example usage: "drush dslm-add-profile myInstallProfile-2.0 --upgrade")
 
 drush dslm-remove-profile [profile name]
 Removes a managed profile.
