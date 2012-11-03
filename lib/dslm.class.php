@@ -420,6 +420,27 @@ class Dslm {
     $dest_profiles_dir = "$dir/profiles";
     $source_profile_dir = "$base/profiles/$name-$version";
 
+    // Relative path between the two profiles folders
+    $relpath = $this->relpath("$base/profiles", "$dir/profiles");
+    $settings_relpath = $this->relpath("$base/profiles", "$dir/sites/default");
+
+    // If a settings.php exists within the profile.
+    if (file_exists("$base/profiles/$name-$version/settings.php")) {
+      // If we're upgrading, check if settings.php is symlink, remove it and replace it with a new symlink.
+      if ($upgrade) {
+        // Only replace settings.php on upgrade if is currently a symlink.
+        if (is_link("$dir/sites/default/settings.php")) { 
+          $this->removeSymlink("$dir/sites/default/settings.php");
+          symlink("$settings_relpath/$name-$version/settings.php", "$dir/sites/default/settings.php");
+        }
+      }
+      // If settings.php doesnt already exist within the current site, add the symlink.
+      if (!is_link("$dir/sites/default/settings.php") && !file_exists("$dir/sites/default/settings.php")) { 
+        // Then symlink the settings.php.
+        symlink("$settings_relpath/$name-$version/settings.php", "$dir/sites/default/settings.php");
+      }
+    }
+
     if (!$upgrade) {
       if (file_exists("$dir/profiles/$name")) {
         $this->last_error = "The profile '$name' is already linked to this site.";
@@ -434,9 +455,6 @@ class Dslm {
       // Remove the previous symlink.
       $this->removeSymlink("$dir/profiles/$name");
     }
-
-    // Relative path between the two profiles folders
-    $relpath = $this->relpath("$base/profiles", "$dir/profiles");
 
     // Working symlink
     symlink("$relpath/$name-$version", "$dir/profiles/$name");
@@ -453,6 +471,7 @@ class Dslm {
       $this->last_error = 'Invalid profile given.';
       return FALSE;
     }
+
     return $this->removeSymlink("$profiles_dir/$profile_name");
   }
 
