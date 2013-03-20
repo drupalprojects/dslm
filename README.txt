@@ -32,7 +32,7 @@ Once your base is set up as described above, you'll need to pass it to drush dsl
 The base can be set using any of the options below. It will first look for the cli switch, then in your drushrc.php and finally for an enviro var.
 
 - The cli switch --dslm-base=/path/to/dslm_base
-- The drushrc.php file $conf['dslm_base'] = /path/to/dslm_base;
+- The drushrc.php file $options['dslm_base'] = /path/to/dslm_base;
 - The DSLM_BASE system environment variable
 
 DSLM Commands
