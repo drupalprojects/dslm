@@ -516,7 +516,7 @@ class Dslm {
    * @return string
    *  Return $this->base
    */
-  protected function getBase() {
+  public function getBase() {
     // @todo replace all calls to $this->getBase() with a reference to the $this->base attribute
     // Base is now validated on instantiation, this is here for backward compatibility
     return $this->base;
