@@ -33,6 +33,7 @@ function dslm_drush_command() {
   $release_options = array(
     'latest' => 'Use the latest release(stable) version of core and/or profile.',
     'dev' => 'Use the latest dev version of core and/or profile.',
+    'current' => 'Use the "current" symlink of core and profile, if it exists.',
   );
 
   $items['dslm-info'] = array(
@@ -212,6 +213,9 @@ function drush_dslm_new() {
   elseif (drush_get_option('dev', FALSE)) {
     $latest = $dslm->latestCores();
     $core = $latest['dev'];
+  }
+  elseif (drush_get_option('current', FALSE)) {
+    $core = 'current';
   }
   else {
     $core = isset($args[2]) ? $args[2] : FALSE;

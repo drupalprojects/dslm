@@ -30,7 +30,7 @@ class Dslm {
    *
    * @var string
    */
-  protected $core_regex = '/(.+)\-([\d\.x]+\-*[dev|alph|beta|rc|pl]*[\d]*)$/i';
+  protected $core_regex = '/(current|(.+)\-([\d\.x]+\-*[dev|alph|beta|rc|pl]*[\d]*))$/i';
 
   /**
    * Define a profile parsing regular expression
@@ -38,7 +38,7 @@ class Dslm {
    * @var string
    */
   //protected $profile_regex = '/^([A-Z0-9_]+)\-((\d+)\.x\-([\d\.x]+\-*[dev|alph|beta|rc|pl]*[\d]*))$/i';
-  protected $profile_regex = '/(.+)\-([\d\.x]+\-*[dev|alph|beta|rc|pl]*[\d]*)$/i';
+  protected $profile_regex = '/(current|(.+)\-([\d\.x]+\-*[dev|alph|beta|rc|pl]*[\d]*))$/i';
 
   /**
    * An array of regex patterns for matching filenames to
