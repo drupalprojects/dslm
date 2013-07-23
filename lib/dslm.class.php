@@ -123,7 +123,7 @@ class Dslm {
 
     // Reusable regex for determining if the profile strin is dev or release
     $dev_regex = '/[dev|alph|beta|rc|pl]+[\.\d]*$/i';
-    
+
     // Iterate through and get the profiles into named groups
     foreach ($this->filesInDir($this->getBase() . "/profiles/") as $profile) {
       if ($matches = $this->isProfileString($profile)) {
@@ -138,7 +138,7 @@ class Dslm {
         }
       }
     }
-    
+
     // Normalize and sort the named group sub-arrays
     foreach ($profiles as $name => $value) {
       foreach (array('all', 'dev', 'release') as $class) {
@@ -766,7 +766,7 @@ class Dslm {
       'update.php',
       'cron.php',
     );
-    
+
     /* TODO: update for drupal 8's core/dir */
 
     foreach ($checks as $check) {

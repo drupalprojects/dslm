@@ -147,7 +147,7 @@ function drush_dslm_cores() {
     $out .= "$core\n";
     $info['cores'][$core] = $core;
   }
-  
+
   if ($format = drush_get_option('format', FALSE)) {
     drush_print(drush_format($info, '', $format));
   }
@@ -177,7 +177,7 @@ function drush_dslm_profiles() {
       $info['profiles'][$name][] = $version;
     }
   }
-  
+
   if ($format = drush_get_option('format', FALSE)) {
     drush_print(drush_format($info, '', $format));
   }
@@ -292,7 +292,7 @@ function drush_dslm_add_profile() {
 
   // Version might be coming through the profile_name as in my_profile-1.2
   list($profile_name, $profile_version) = explode('-', $profile_name);
-  
+
   if (!$profile_name) {
     $choices = array();
     foreach ($profiles as $k => $v) {
@@ -310,7 +310,7 @@ function drush_dslm_add_profile() {
   // If profile version not provided as single string with name, check arg 2
   // as in "drush dslm-add-profile my_profile 1.2"
   $profile_version = isset($args[2]) ? $args[2] : $profile_version;
-  
+
   // If we still dont have a version number, prompt the user with the
   // available options.
   if (!$profile_version) {
@@ -351,7 +351,7 @@ function drush_dslm_remove_profile() {
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
-  
+
   if (!$info = $dslm->siteInfo()) {
     return drush_set_error($dslm->lastError());
   }
