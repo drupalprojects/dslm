@@ -38,7 +38,7 @@ class Dslm {
    * @var string
    */
   //protected $profile_regex = '/^([A-Z0-9_]+)\-((\d+)\.x\-([\d\.x]+\-*[dev|alph|beta|rc|pl]*[\d]*))$/i';
-  protected $profile_regex = '/(current|(.+)\-([\d\.x]+\-*[dev|alph|beta|rc|pl]*[\d]*))$/i';
+  protected $profile_regex = '/(.+)\-((current|[\d\.x]+\-*[dev|alph|beta|rc|pl]*[\d]*))$/i';
 
   /**
    * An array of regex patterns for matching filenames to
@@ -170,6 +170,23 @@ class Dslm {
       'all' => $cores['all'][count($cores['all'])-1],
       'dev' => $cores['dev'][count($cores['dev'])-1],
       'release' => $cores['release'][count($cores['release'])-1],
+    );
+  }
+
+  /**
+   * Return the latest versions of profiles
+   * broken up by all, dev, and release
+   *
+   * @return array
+   *   Returns an array of the various latest profiles
+   */
+  public function latestProfiles($profile_name) {
+    $profiles = $this->getProfiles();
+
+    return array(
+      'all' => $profiles[$profile_name]['all'][count($profiles[$profile_name]['all'])-1],
+      'dev' => $profiles[$profile_name]['dev'][count($profiles[$profile_name]['dev'])-1],
+      'release' => $profiles[$profile_name]['release'][count($profiles[$profile_name]['release'])-1],
     );
   }
 

@@ -77,13 +77,15 @@ function dslm_drush_command() {
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
   );
 
+  $profile_release_options = array_merge($release_options,
+    array('upgrade' => 'Attempt to upgrade already symlinked profile to new version.',)
+  );
+
   $items['dslm-add-profile'] = array(
     'description' => 'DSLM Add Profile',
     'arguments' => $arguments,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
-    'options' => array(
-      'upgrade' => 'Attempt to upgrade already symlinked profile to new version.',
-    ),
+    'options' => $profile_release_options,
   );
 
   $items['dslm-remove-profile'] = array(
@@ -290,8 +292,14 @@ function drush_dslm_add_profile() {
   // Get the profile name via args or interactively
   $profile_name = isset($args[1]) ? $args[1] : FALSE;
 
+  if (drush_get_option('current', FALSE)) {
+    $profile_version = 'current';
+  }
+
   // Version might be coming through the profile_name as in my_profile-1.2
-  list($profile_name, $profile_version) = explode('-', $profile_name);
+  if (!isset($profile_version)) {
+    list($profile_name, $profile_version) = explode('-', $profile_name);
+  }
 
   if (!$profile_name) {
     $choices = array();
@@ -310,6 +318,15 @@ function drush_dslm_add_profile() {
   // If profile version not provided as single string with name, check arg 2
   // as in "drush dslm-add-profile my_profile 1.2"
   $profile_version = isset($args[2]) ? $args[2] : $profile_version;
+
+  if (drush_get_option('latest', FALSE)) {
+    $latest = $dslm->latestProfiles($profile_name);
+    $profile_version = $latest['release'];
+  }
+  elseif (drush_get_option('dev', FALSE)) {
+    $latest = $dslm->latestProfiles($profile_name);
+    $profile_version = $latest['dev'];
+  }
 
   // If we still dont have a version number, prompt the user with the
   // available options.
