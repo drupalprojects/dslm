@@ -46,7 +46,7 @@ class Dslm {
    *
    * @var array
    */
-  protected $ignore_core_file_patterns = array('/^.git/', '/(?<!^robots)\.txt$/');
+  protected $ignore_core_file_patterns = array('/^.git/', '/(?<!^robots)\.txt$/', '/(.+).patch$/');
 
   /**
    * DSLM constructor
