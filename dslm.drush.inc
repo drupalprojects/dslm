@@ -75,6 +75,7 @@ function dslm_drush_command() {
     'description' => 'DSLM  Switch Core',
     'arguments' => $arguments,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
+    'options' => $release_options,
   );
 
   $profile_release_options = array_merge($release_options,
@@ -253,6 +254,11 @@ function drush_dslm_switch_core() {
 
   $args = drush_get_arguments();
   $core = isset($args[1]) ? $args[1] : FALSE;
+
+  if (!$core && drush_get_option('current', FALSE)) {
+    $core = 'current';
+  }
+
   // If we still don't have a core string try to get on iteractively
   if (!$core) {
     $core_list = $dslm->getCores();
