@@ -36,6 +36,15 @@ function dslm_drush_command() {
     'current' => 'Use the "current" symlink of core and profile, if it exists.',
   );
 
+  $items['dslm'] = array(
+    'description' => 'DSLM BASE information',
+    'arguments' => $arguments,
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
+    'options' => array(
+      'format' => 'Passes through drush_format instead of drush_log',
+    ),
+  );
+
   $items['dslm-info'] = array(
     'description' => 'DSLM site information',
     'arguments' => $arguments,
@@ -97,6 +106,30 @@ function dslm_drush_command() {
 
   return $items;
 }
+
+/**
+ * Command callback. Displays a list of available cores.
+ */
+function drush_dslm() {
+  // Bootstrap dslm, this grabs the instantiated and configured dslm library object
+  if (!$dslm = _dslm_bootstrap()) {
+    return FALSE;
+  }
+  if (!$info = $dslm->dslmInfo()) {
+    return drush_set_error($dslm->lastError());
+  }
+  $out = 'DSLM BASE: ' . $info['dslm_base'] . "\n";
+  $out .= 'DIRECTORY: ' . $info['directory'];
+
+  if ($format = drush_get_option('format', FALSE)) {
+    drush_print(drush_format($info, '', $format));
+  }
+  else {
+    drush_log(trim($out), 'ok');
+  }
+  return TRUE;
+}
+
 
 /**
  * Command callback. Displays the dslm information for a site.

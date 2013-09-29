@@ -232,6 +232,24 @@ class Dslm {
   }
 
   /**
+   * Returns dslm information.
+   *
+   * @param boolean $d
+   *  The directory to use as the base, this will default to getcwd()
+   * @return array
+   *  Returns an array containing the directory and dslm_base.
+   */
+  public function dslmInfo($d = FALSE) {
+    if (!$d) {
+      $d = getcwd();
+    }
+    $out['directory'] = $d;
+    $out['dslm_base'] = $this->getBase();
+
+    return $out;
+  }
+
+  /**
    * Returns site information
    *
    * @param boolean $d
