@@ -485,9 +485,9 @@ function _dslm_get_base() {
     $base = $base_check;
   }
   else {
-    // Last ditch is tp ise the environment variable if it's set.
-    if (isset($_ENV['DSLM_BASE'])) {
-      $base = $_ENV['DSLM_BASE'];
+    // Last ditch is to use the environment variable if it's set.
+    if (getenv('DSLM_BASE')) {
+      $base = getenv('DSLM_BASE');
     } else {
       // If we got here and there wasn't an environment variable set, bail
       return FALSE;
