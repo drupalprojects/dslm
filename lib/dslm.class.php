@@ -576,7 +576,7 @@ class Dslm {
     if ($type == 'core') {
       foreach ($v as $version) {
         if (preg_match($this->core_regex, $version, $parsed)) {
-          $for_sorting[strtolower($parsed[2])] = $version;
+          $for_sorting[strtolower($parsed[3])] = $version;
         }
       }
     }
