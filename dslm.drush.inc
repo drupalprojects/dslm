@@ -80,6 +80,14 @@ function dslm_drush_command() {
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
   );
 
+  $items['dslm-convert-core'] = array(
+    'description' => 'DSLM Convert Core to Links',
+    'arguments' => $arguments,
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
+    'options' => $release_options,
+    'aliases' => array('dslm-cc'),
+  );
+
   $items['dslm-switch-core'] = array(
     'description' => 'DSLM  Switch Core',
     'arguments' => $arguments,
@@ -100,6 +108,18 @@ function dslm_drush_command() {
 
   $items['dslm-remove-profile'] = array(
     'description' => 'DSLM Remove Profile',
+    'arguments' => $arguments,
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
+  );
+  
+  $items['dslm-add-contrib'] = array(
+    'description' => 'DSLM Add Contrib Project',
+    'arguments' => $arguments,
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
+  );
+  
+  $items['dslm-add-custom'] = array(
+    'description' => 'DSLM Add Custom Project',
     'arguments' => $arguments,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
   );
@@ -277,6 +297,82 @@ function drush_dslm_new() {
 }
 
 /**
+ * Command callback. Prompts the user to convert their current, normal site to
+ * a symlinked site.
+ *
+ * After this process is complete a file listing won't show the links until
+ * the directory structure is traversed out and back in.
+ *
+ * Maybe allow this to be done from outside of the drupal root? We can verify
+ * that a lower directory is a drupal root in other ways than bootstrapping.
+ */
+function drush_dslm_convert_core() {
+  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  if (!$dslm = _dslm_bootstrap()) {
+    return FALSE;
+  }
+
+  // Validate the desired core.
+  $args = drush_get_arguments();
+  $site = isset($args[1]) ? $args[1] : FALSE;
+  $core = isset($args[2]) ? $args[2] : FALSE;
+
+  // Ensure the site we are converting is a regular drupal site and that
+  // we are not inside it.
+  if (!$site) {
+    drush_set_error(dt('You must specify a site to convert.'));
+    return FALSE;
+  }
+  elseif (strpos($site, '.') === 0) {
+    drush_set_error(dt('You cannot convert the site you are currently within.'));
+    return FALSE;
+  }
+  elseif (!is_file("{$site}/index.php") || !is_dir("{$site}/modules")) {
+    drush_set_error(dt('This is not a valid Drupal site.'));
+    return FALSE;
+  }
+  elseif (is_link("{$site}/index.php")) {
+    drush_set_error(dt('This site already appears to be linked.'));
+    return FALSE;
+  }
+
+  // If we still don't have a core string, try to get one interactively
+  if (!$core) {
+    $core_list = $dslm->getCores();
+    $pick_core = drush_choice($core_list['all']);
+    if (!$pick_core) {
+      return FALSE;
+    }
+    $core = $core_list['all'][$pick_core];
+  }
+
+  drush_print_r("Converting {$site} to DSLM version {$core}.");
+
+  // Create a new site named SITE.dslm parallel to the current site.
+  drush_print(dt('DSLM: Creating new linked site...'));
+  if ($res = $dslm->newSite("{$site}.dslm", $core, TRUE)) {
+    // Copy the permanent files from the old site into the new one.
+    drush_print(dt("DSLM: Copying permanent contents..."));
+    shell_exec("cp -r {$site}/sites {$site}.dslm");
+    shell_exec("cp -r {$site}/profiles {$site}.dslm");
+    shell_exec("cp -r {$site}/.git* {$site}.dslm");
+    shell_exec("cp -r {$site}/.svn {$site}.dslm");
+
+    // Move the old site to NAME.dslmbak
+    drush_print(dt("DSLM: Cleaning up..."));
+    rename("{$site}", "{$site}.dslmorig");
+
+    // Move the new site to just SITE to replace the old one.
+    rename("{$site}.dslm", "{$site}");
+
+    drush_print(dt("DSLM: Core conversion complete."));
+  }
+  else {
+    return drush_set_error($dslm->lastError());
+  }
+}
+
+/**
  * Command callback. Prompts the user to switch the dslm core.
  */
 function drush_dslm_switch_core() {
@@ -441,6 +537,104 @@ function drush_dslm_remove_profile() {
   }
 }
 
+
+/**
+ * Command callback. Adds symlink for custom project to sites/all
+ */
+function drush_dslm_add_custom() {
+  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  if (!$dslm = _dslm_bootstrap()) {
+    return FALSE;
+  }
+
+  if (!$info = $dslm->siteInfo()) {
+    return drush_set_error($dslm->lastError());
+  }
+
+  $args = drush_get_arguments();
+  
+  if (TRUE) {
+    drush_log(dt('Symlinks for !projects added.', array('!projects' => $args)), 'success');
+  }
+  else {
+    return drush_set_error($dslm->lastError());
+  }
+}
+/**
+ * Command callback. Adds symlink for custom project to sites/all
+ */
+function drush_dslm_add_contrib() {
+  drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
+  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  if (!$dslm = _dslm_bootstrap()) {
+    return FALSE;
+  }
+  // why can't I use $dslm->base?
+  $base = _dslm_get_base();
+
+  if (!$info = $dslm->siteInfo()) {
+    return drush_set_error($dslm->lastError());
+  }
+
+  $args = drush_get_arguments();
+  
+  unset($args[0]);
+  
+  $arg_list = implode(", ", $args);
+  
+  $requests = pm_parse_arguments($args);
+  $requests = pm_parse_project_version($requests);
+  //drush_print_r($requests);
+  
+  foreach ($requests as $request) {
+    // check to see if package is in dslm_base and determin if it is a module, theme, or libnrary
+    //drush_print('checking for ' . $request['name']);
+    //drush_print($base . '/packages/contrib/modules/' . $request['name']);
+    
+    //only check if it hasn't been set
+    $request['type'] = FALSE;
+    
+    // this cound be condensed
+    if(file_exists($base . '/packages/contrib/modules/' . $request['name'])) {
+      $request['type'] = 'modules';
+    }
+    
+    if(!$request['type'] && file_exists($base . '/packages/contrib/themes/' . $request['name'])) {
+      $request['type'] = 'themes';
+    }
+    
+    if(!$request['type'] && file_exists($base . '/packages/contrib/libraries/' . $request['name'])) {
+      $request['type'] = 'libraries';
+    }
+    
+    if (!$request['type']) {
+      return drush_set_error($request['name'] . ' not found in modules, themes, or libraries within packages/contrib');
+    }
+    
+    
+    // check to see if we want a specific version
+    if (!$request['version']) {
+       drush_print('shoudl be symlinking current... this is not working yet');
+    }
+    
+    if ($request['version']) {
+      //drush_print($base . '/packages/contrib/' . $request['type'] . '/' . $request['name'] . '/' . $request['name'] . '-' . $request['version']);
+      if(file_exists($base . '/packages/contrib/' . $request['type'] . '/' . $request['name'] . '/' . $request['name'] . '-' . $request['version'])) {
+        drush_print('symlinking ' . $request['version']);
+      }
+    }
+   
+    // Run the DSLM manageContribPackage method to add the project or deal with an error
+    if ($dslm->manageContribPackage($request['name'], $request['version'], $request['type'])) {
+      drush_log(dt('Symlinks for ' . $request['name'] . 'added.', array('!projects' => $arg_list)), 'success');
+    }
+    else {
+      return drush_set_error($dslm->lastError());
+    }
+  }
+
+}
+
 /**
  * Internal bootstrap function
  * @return object
@@ -501,3 +695,4 @@ function _dslm_get_base() {
 
   return $base;
 }
+

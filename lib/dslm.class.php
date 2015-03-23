@@ -46,7 +46,7 @@ class Dslm {
    *
    * @var array
    */
-  protected $ignore_core_file_patterns = array('/^.git/', '/(?<!^robots)\.txt$/', '/(.+).patch$/');
+  protected $ignore_core_file_patterns = array('/^.DS_Store/', '/^.git/', '/(?<!^robots)\.txt$/', '/(.+).patch$/');
 
   /**
    * DSLM constructor
@@ -85,6 +85,7 @@ class Dslm {
     $releases = array();
 
     foreach ($this->filesInDir($this->getBase() . "/cores/") as $core) {
+      //print $core . " = ";
       if ($this->isCoreString($core)) {
         $all[] = $core;
 
@@ -383,7 +384,10 @@ class Dslm {
       }
       symlink("$relpath/$f", "$dest_dir/$f");
     }
-
+    
+    // New directory structure in Backdrop and D8
+    // - add files at root
+    // don't symlink root modules, themes, layouts, or settings.php
     // See if we need to create a profiles dir or sites dir tree
     if(!file_exists("$dest_dir/sites")) {
       mkdir("$dest_dir/sites");
@@ -535,6 +539,49 @@ class Dslm {
     // Return any profiles managed within this directory
     return $managed_profiles;
   }
+  
+  /**
+   * Manage Contrib Package
+   *
+   * @param string $name
+   *  The profile name
+   * @param string $version
+   *  The profile version
+   * @param string $type
+   *  module, theme, or library
+   *
+   * @return string
+   *  Returns the profile string we just switched to.
+   */
+  public function manageContribPackage($name, $version, $type) {
+
+    // Bail if the profile isn't valid
+    //if (!$this->isValidProfile($name, $version)) {
+      //return FALSE;
+    //}
+
+    // Default the directory to getcwd()
+    //if (!$dir) {
+      $dir = getcwd();
+   // }
+
+    // Set some path variables to make things easier
+    $base = $this->base;
+    $dest_profiles_dir = "$dir/sites/all/$type/contrib/$name";
+    // if current?
+    $source_profile_dir = "$base/packages/contrib/$type/$name/$name-$version";
+    
+    //drush_print($source_profile_dir);
+    //drush_print($dest_profiles_dir);
+    // Relative path between the two profiles folders
+    //$relpath = $this->relpath("$base/profiles", "$dir/profiles");
+
+    // Working symlink
+    //symlink("$relpath/$name-$version", "$dir/profiles/$name");
+    symlink($source_profile_dir, $dest_profiles_dir);
+    return "$name-$version";
+  }
+
 
   /**
    * Get the last error
@@ -576,7 +623,7 @@ class Dslm {
     if ($type == 'core') {
       foreach ($v as $version) {
         if (preg_match($this->core_regex, $version, $parsed)) {
-          $for_sorting[strtolower($parsed[3])] = $version;
+          $for_sorting[strtolower($parsed[2])] = $version;
         }
       }
     }
@@ -608,6 +655,7 @@ class Dslm {
    *  Returns an array from preg_match or FALSE
    */
   public function isCoreString($s) {
+    //print $s . ", ";
     if (preg_match($this->core_regex, $s, $matches)) {
       return $matches;
     }
@@ -903,3 +951,5 @@ class Dslm {
     return FALSE;
   }
 }
+
+ 
