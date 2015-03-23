@@ -569,7 +569,12 @@ class Dslm {
     $base = $this->base;
     $dest_profiles_dir = "$dir/sites/all/$type/contrib/$name";
     // if current?
-    $source_profile_dir = "$base/packages/contrib/$type/$name/$name-$version";
+    if ($version == 'current') {
+      $source_profile_dir = "$base/packages/contrib/$type/$name/current";
+    } 
+    else {
+      $source_profile_dir = "$base/packages/contrib/$type/$name/$name-$version";
+    }
     
     //drush_print($source_profile_dir);
     //drush_print($dest_profiles_dir);
@@ -580,6 +585,59 @@ class Dslm {
     //symlink("$relpath/$name-$version", "$dir/profiles/$name");
     symlink($source_profile_dir, $dest_profiles_dir);
     return "$name-$version";
+  }
+  
+   /**
+   * Manage Custom Package
+   *
+   * @param string $name
+   *  The profile name
+   *
+   * @return string
+   *  Returns the profile string we just switched to.
+   */
+  public function manageCustomPackage($name) {
+
+    // Bail if the profile isn't valid
+    //if (!$this->isValidProfile($name, $version)) {
+      //return FALSE;
+    //}
+
+    // Default the directory to getcwd()
+    //if (!$dir) {
+      $root = getcwd();
+   // }
+
+    // Set some path variables to make things easier
+    $base = $this->base;
+    
+    $source_profile_dir = "$base/packages/custom/$name";
+    
+    
+    //drush_print($source_profile_dir);
+    //drush_print($dest_profiles_dir);
+    // Relative path between the two profiles folders
+    //$relpath = $this->relpath("$base/profiles", "$dir/profiles");
+
+    // Working symlink
+    //symlink("$relpath/$name-$version", "$dir/profiles/$name");
+    
+    // add individual symlinks for all modules, themes, and library directories
+    // that exist in source
+    if (file_exists($source_profile_dir . '/modules')) {
+      
+      $dirs = $this->filesInDir($source_profile_dir . '/modules');
+      
+      foreach($dirs as $dir) {
+        $dest_profiles_dir = "$root/sites/all/modules/custom/$dir";
+        //drush_print($dir);
+        //drush_print($source_profile_dir . '/modules/' . $dir);
+       //drush_print($dest_profiles_dir);
+        symlink($source_profile_dir . '/modules/' . $dir, $dest_profiles_dir);
+      }
+    }
+    
+    return "$name";
   }
 
 

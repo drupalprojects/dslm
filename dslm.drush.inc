@@ -539,13 +539,16 @@ function drush_dslm_remove_profile() {
 
 
 /**
- * Command callback. Adds symlink for custom project to sites/all
+ * Command callback. Adds symlink for custom project to sites/all/TYPE/custom
  */
 function drush_dslm_add_custom() {
+  drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
   // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
+  // why can't I use $dslm->base?
+  $base = _dslm_get_base();
 
   if (!$info = $dslm->siteInfo()) {
     return drush_set_error($dslm->lastError());
@@ -553,13 +556,33 @@ function drush_dslm_add_custom() {
 
   $args = drush_get_arguments();
   
-  if (TRUE) {
-    drush_log(dt('Symlinks for !projects added.', array('!projects' => $args)), 'success');
+  unset($args[0]);
+  
+  $arg_list = implode(", ", $args);
+  
+  $requests = pm_parse_arguments($args);
+  $requests = pm_parse_project_version($requests);
+  //drush_print_r($requests);
+  
+  foreach ($requests as $request) {
+    // check to see if package is in dslm_base/packages to determine if this is a module, theme, or library
+
+    // this code could be condensed, but it works
+    if(!file_exists($base . '/packages/custom/' . $request['name'])) {
+      return drush_set_error($request['name'] . ' not found in packages/custom');
+    }
+
+    // Run the DSLM manageContribPackage method to add the project or deal with an error
+    if ($dslm->manageCustomPackage($request['name'])) {
+      drush_log(dt('Symlinks for ' . $request['name'] . 'added.', array('!projects' => $arg_list)), 'success');
+    }
+    else {
+      return drush_set_error($dslm->lastError());
+    }
   }
-  else {
-    return drush_set_error($dslm->lastError());
-  }
+
 }
+
 /**
  * Command callback. Adds symlink for custom project to sites/all
  */
@@ -587,14 +610,12 @@ function drush_dslm_add_contrib() {
   //drush_print_r($requests);
   
   foreach ($requests as $request) {
-    // check to see if package is in dslm_base and determin if it is a module, theme, or libnrary
-    //drush_print('checking for ' . $request['name']);
-    //drush_print($base . '/packages/contrib/modules/' . $request['name']);
-    
+    // check to see if package is in dslm_base/packages to determine if this is a module, theme, or library
+
     //only check if it hasn't been set
     $request['type'] = FALSE;
     
-    // this cound be condensed
+    // this code could be condensed, but it works
     if(file_exists($base . '/packages/contrib/modules/' . $request['name'])) {
       $request['type'] = 'modules';
     }
@@ -611,16 +632,19 @@ function drush_dslm_add_contrib() {
       return drush_set_error($request['name'] . ' not found in modules, themes, or libraries within packages/contrib');
     }
     
-    
     // check to see if we want a specific version
-    if (!$request['version']) {
-       drush_print('shoudl be symlinking current... this is not working yet');
+    if ($request['version']) {
+      //and that the version we want exists in dslm_base
+      if(!file_exists($base . '/packages/contrib/' . $request['type'] . '/' . $request['name'] . '/' . $request['name'] . '-' . $request['version'])) {
+        return drush_set_error('Version' . $request['version'] . ' not found for ' . $request['name']);
+      }
     }
     
-    if ($request['version']) {
-      //drush_print($base . '/packages/contrib/' . $request['type'] . '/' . $request['name'] . '/' . $request['name'] . '-' . $request['version']);
-      if(file_exists($base . '/packages/contrib/' . $request['type'] . '/' . $request['name'] . '/' . $request['name'] . '-' . $request['version'])) {
-        drush_print('symlinking ' . $request['version']);
+    // if there is no version specified, use current
+    if (!$request['version']) {
+       $request['version'] = 'current';
+       if(!file_exists($base . '/packages/contrib/' . $request['type'] . '/' . $request['name'] . '/current')) {
+        return drush_set_error('Current not found for ' . $request['name']);
       }
     }
    
