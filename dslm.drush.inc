@@ -574,7 +574,7 @@ function drush_dslm_add_custom() {
 
     // Run the DSLM manageContribPackage method to add the project or deal with an error
     if ($dslm->manageCustomPackage($request['name'])) {
-      drush_log(dt('Symlinks for ' . $request['name'] . 'added.', array('!projects' => $arg_list)), 'success');
+      drush_log(dt('Symlinks for ' . $request['name'] . ' added.', array('!projects' => $arg_list)), 'success');
     }
     else {
       return drush_set_error($dslm->lastError());

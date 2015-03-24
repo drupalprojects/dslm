@@ -85,7 +85,6 @@ class Dslm {
     $releases = array();
 
     foreach ($this->filesInDir($this->getBase() . "/cores/") as $core) {
-      //print $core . " = ";
       if ($this->isCoreString($core)) {
         $all[] = $core;
 
@@ -422,6 +421,27 @@ class Dslm {
       }
     }
 
+    // Support for shared sites/all sub-directories
+    $core_version = explode('.', $core);
+    $core_version = $core_version[0] . '.x';
+    $shared_dir = "$base/shared/$core_version";
+    // ensure we have a shared folder worth looking for
+    if (file_exists($this->getBase() . '/shared/' . $core_version)) {
+      // Look for folders that we want to include
+      foreach($this->filesInDir("$shared_dir") as $df) {
+        // Look for folders that we want to include in sites/all/$df
+        foreach($this->filesInDir("$shared_dir/$df") as $f) {
+          if(is_link("$dest_dir/sites/all/$df/$f")) {
+            unlink("$dest_dir/sites/all/$df/$f");
+          }
+          if(!file_exists("$dest_dir/sites/all/$df/$f")) {
+            $relpath = $this->relpath("$shared_dir/$df", "$dest_dir/sites/all/$df");
+            symlink("$relpath/$f", "$dest_dir/sites/all/$df/$f");
+          }
+        }
+      }
+    }
+
     // Return the core we just linked to
     return $core;
   }
@@ -522,6 +542,7 @@ class Dslm {
 
     // Pull a list of profiles in the base
     $profiles = $this->getProfiles();
+    $profiles = $this->getProfiles();
 
     // Iterate through the local profiles
     foreach($this->filesInDir("$dir/profiles") as $f) {
@@ -555,19 +576,11 @@ class Dslm {
    */
   public function manageContribPackage($name, $version, $type) {
 
-    // Bail if the profile isn't valid
-    //if (!$this->isValidProfile($name, $version)) {
-      //return FALSE;
-    //}
-
-    // Default the directory to getcwd()
-    //if (!$dir) {
-      $dir = getcwd();
-   // }
-
     // Set some path variables to make things easier
+    $dir = getcwd();
     $base = $this->base;
     $dest_profiles_dir = "$dir/sites/all/$type/contrib/$name";
+    
     // if current?
     if ($version == 'current') {
       $source_profile_dir = "$base/packages/contrib/$type/$name/current";
@@ -598,19 +611,9 @@ class Dslm {
    */
   public function manageCustomPackage($name) {
 
-    // Bail if the profile isn't valid
-    //if (!$this->isValidProfile($name, $version)) {
-      //return FALSE;
-    //}
-
-    // Default the directory to getcwd()
-    //if (!$dir) {
-      $root = getcwd();
-   // }
-
     // Set some path variables to make things easier
+    $root = getcwd();
     $base = $this->base;
-    
     $source_profile_dir = "$base/packages/custom/$name";
     
     
@@ -624,16 +627,21 @@ class Dslm {
     
     // add individual symlinks for all modules, themes, and library directories
     // that exist in source
-    if (file_exists($source_profile_dir . '/modules')) {
+   
+    $types = array('modules', 'themes', 'libraries');
+    foreach ($types as $type) {
       
-      $dirs = $this->filesInDir($source_profile_dir . '/modules');
-      
-      foreach($dirs as $dir) {
-        $dest_profiles_dir = "$root/sites/all/modules/custom/$dir";
-        //drush_print($dir);
-        //drush_print($source_profile_dir . '/modules/' . $dir);
-       //drush_print($dest_profiles_dir);
-        symlink($source_profile_dir . '/modules/' . $dir, $dest_profiles_dir);
+      if (file_exists($source_profile_dir . '/' . $type . '/custom')) {
+        //check to see if the custom dir exists in the target
+        if (!file_exists($root . '/sites/all/' . $type . '/custom/')) {
+          mkdir($root . '/sites/all/' . $type . '/custom/');
+        }
+        
+        $dirs = $this->filesInDir($source_profile_dir . '/' . $type . '/custom');
+        foreach($dirs as $dir) {
+          $dest_profiles_dir = "$root/sites/all/$type/custom/$dir";
+          symlink($source_profile_dir . '/' . $type . '/custom/' . $dir, $dest_profiles_dir);
+        }
       }
     }
     
@@ -681,7 +689,7 @@ class Dslm {
     if ($type == 'core') {
       foreach ($v as $version) {
         if (preg_match($this->core_regex, $version, $parsed)) {
-          $for_sorting[strtolower($parsed[2])] = $version;
+          $for_sorting[strtolower($parsed[3])] = $version;
         }
       }
     }
