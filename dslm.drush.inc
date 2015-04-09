@@ -561,20 +561,18 @@ function drush_dslm_add_custom() {
   $arg_list = implode(", ", $args);
   
   $requests = pm_parse_arguments($args);
-  $requests = pm_parse_project_version($requests);
-  //drush_print_r($requests);
-  
+
   foreach ($requests as $request) {
     // check to see if package is in dslm_base/packages to determine if this is a module, theme, or library
 
     // this code could be condensed, but it works
-    if(!file_exists($base . '/packages/custom/' . $request['name'])) {
+    if(!file_exists($base . '/packages/custom/' . $request)) {
       return drush_set_error($request['name'] . ' not found in packages/custom');
     }
 
     // Run the DSLM manageContribPackage method to add the project or deal with an error
-    if ($dslm->manageCustomPackage($request['name'])) {
-      drush_log(dt('Symlinks for ' . $request['name'] . ' added.', array('!projects' => $arg_list)), 'success');
+    if ($dslm->manageCustomPackage($request)) {
+      drush_log(dt('Symlinks for ' . $request . ' added.', array('!projects' => $arg_list)), 'success');
     }
     else {
       return drush_set_error($dslm->lastError());
@@ -606,12 +604,25 @@ function drush_dslm_add_contrib() {
   $arg_list = implode(", ", $args);
   
   $requests = pm_parse_arguments($args);
-  $requests = pm_parse_project_version($requests);
-  //drush_print_r($requests);
   
-  foreach ($requests as $request) {
-    // check to see if package is in dslm_base/packages to determine if this is a module, theme, or library
+  // pm_parse_project_version -> pm_parse_version in drush 7
+  if (function_exists(pm_parse_project_version)) {
+    $requests = pm_parse_project_version($requests);
+  }
 
+  foreach ($requests as $request) {
+
+    // pm_parse_project_version -> pm_parse_version in drush 7
+    // and no longer sets ['name']
+    
+    if (function_exists(pm_parse_version)) {
+      $request_name = $request;
+      $request = pm_parse_version($request);
+      $request['name'] = $request_name;
+    }
+
+    // check to see if package is in dslm_base/packages to determine if this is a module, theme, or library
+    
     //only check if it hasn't been set
     $request['type'] = FALSE;
     
@@ -650,7 +661,7 @@ function drush_dslm_add_contrib() {
    
     // Run the DSLM manageContribPackage method to add the project or deal with an error
     if ($dslm->manageContribPackage($request['name'], $request['version'], $request['type'])) {
-      drush_log(dt('Symlinks for ' . $request['name'] . 'added.', array('!projects' => $arg_list)), 'success');
+      drush_log(dt('Symlinks for ' . $request['name'] . ' added.', array('!projects' => $arg_list)), 'success');
     }
     else {
       return drush_set_error($dslm->lastError());
