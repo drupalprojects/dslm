@@ -579,24 +579,29 @@ class Dslm {
     // Set some path variables to make things easier
     $dir = getcwd();
     $base = $this->base;
-    $dest_profiles_dir = "$dir/sites/all/$type/contrib/$name";
-    
+    //$dest_profiles_dir = "$dir/sites/all/$type/contrib/$name";
+    $dest_dir = "$dir/sites/all/$type/contrib/";
+    $source_dir = "$base/packages/contrib/$type/";
+
     // if current?
     if ($version == 'current') {
-      $source_profile_dir = "$base/packages/contrib/$type/$name/current";
+      $source_name = "$name/current";
     } 
     else {
-      $source_profile_dir = "$base/packages/contrib/$type/$name/$name-$version";
+      $source_name = "$name/$name-$version";
     }
     
-    //drush_print($source_profile_dir);
-    //drush_print($dest_profiles_dir);
-    // Relative path between the two profiles folders
-    //$relpath = $this->relpath("$base/profiles", "$dir/profiles");
+    if (file_exists($dest_dir. $name)) {
+      //remove it and readd it because we might be changing the version?
+      $this->removeSymlink($dest_dir . $name);
+    }
+
+    // Relative path between the two folders. Original relpath
+    // does not work... created getRelativePath vs. altering
+    $relpath = $this->getRelativePath($source_dir, $dest_dir);
 
     // Working symlink
-    //symlink("$relpath/$name-$version", "$dir/profiles/$name");
-    symlink($source_profile_dir, $dest_profiles_dir);
+    symlink($relpath . $source_name, $dest_profile_dir . $name);
     return "$name-$version";
   }
   
@@ -614,33 +619,36 @@ class Dslm {
     // Set some path variables to make things easier
     $root = getcwd();
     $base = $this->base;
-    $source_profile_dir = "$base/packages/custom/$name";
-    
-    
-    //drush_print($source_profile_dir);
-    //drush_print($dest_profiles_dir);
-    // Relative path between the two profiles folders
-    //$relpath = $this->relpath("$base/profiles", "$dir/profiles");
-
-    // Working symlink
-    //symlink("$relpath/$name-$version", "$dir/profiles/$name");
+    $source_dir = "$base/packages/custom/$name";
     
     // add individual symlinks for all modules, themes, and library directories
     // that exist in source
-   
     $types = array('modules', 'themes', 'libraries');
     foreach ($types as $type) {
+      $dest_dir = "$root/sites/all/$type/custom/";
       
-      if (file_exists($source_profile_dir . '/' . $type . '/custom')) {
-        //check to see if the custom dir exists in the target
-        if (!file_exists($root . '/sites/all/' . $type . '/custom/')) {
-          mkdir($root . '/sites/all/' . $type . '/custom/');
-        }
+      //check to see if the custom dir exists in the target
+      if (!file_exists($root . '/sites/all/' . $type . '/custom/')) {
+        mkdir($root . '/sites/all/' . $type . '/custom/');
+      }
         
-        $dirs = $this->filesInDir($source_profile_dir . '/' . $type . '/custom');
+      //remove any existing symlinks and readd it because
+      // they may have been removed from the submodule
+      $existing_symlinks = $this->filesInDir($dest_dir);
+      foreach($existing_symlinks as $link) {
+        $this->removeSymlink($dest_dir . $link);
+      }
+
+      // don't try to read themes or libraries if they don't exist in project
+      if (file_exists($source_dir . '/' . $type . '/custom')) {
+        $dirs = $this->filesInDir($source_dir . '/' . $type . '/custom');
         foreach($dirs as $dir) {
-          $dest_profiles_dir = "$root/sites/all/$type/custom/$dir";
-          symlink($source_profile_dir . '/' . $type . '/custom/' . $dir, $dest_profiles_dir);
+ 
+          // Relative path between the two folders. Original relpath
+          // does not work... created getRelativePath vs. altering
+          $relpath = $this->getRelativePath($source_dir, $dest_dir .  $dir);
+
+          symlink($relpath, $dest_dir . $dir);
         }
       }
     }
@@ -986,6 +994,51 @@ class Dslm {
     return $path. $fix;
   }
 
+  /**
+   * Fetch the relative path between two absolute paths
+   * NOTE: original relpath not working for non-mathing directory paths
+   *
+   * @param string $from
+   *  The destination absolute path
+   * @param string $to
+   *  The root absolute path
+   *
+   * @return string
+   *  Returns the relative path
+   */
+  protected function getRelativePath($to, $from)
+  {
+    // some compatibility fixes for Windows paths
+    $from = is_dir($from) ? rtrim($from, '\/') . '/' : $from;
+    $to   = is_dir($to)   ? rtrim($to, '\/') . '/'   : $to;
+    $from = str_replace('\\', '/', $from);
+    $to   = str_replace('\\', '/', $to);
+
+    $from     = explode('/', $from);
+    $to       = explode('/', $to);
+    $relPath  = $to;
+
+    foreach($from as $depth => $dir) {
+        // find first non-matching dir
+        if($dir === $to[$depth]) {
+            // ignore this directory
+            array_shift($relPath);
+        } else {
+            // get number of remaining dirs to $from
+            $remaining = count($from) - $depth;
+            if($remaining > 1) {
+                // add traversals up to first matching dir
+                $padLength = (count($relPath) + $remaining - 1) * -1;
+                $relPath = array_pad($relPath, $padLength, '..');
+                break;
+            } else {
+                $relPath[0] = './' . $relPath[0];
+            }
+        }
+    }
+    return implode('/', $relPath);
+  }
+  
   /**
    * Determine if we're MS Windows
    *

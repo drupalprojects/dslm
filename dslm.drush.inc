@@ -567,7 +567,7 @@ function drush_dslm_add_custom() {
 
     // this code could be condensed, but it works
     if(!file_exists($base . '/packages/custom/' . $request)) {
-      return drush_set_error($request['name'] . ' not found in packages/custom');
+      return drush_set_error($request . ' not found in packages/custom');
     }
 
     // Run the DSLM manageContribPackage method to add the project or deal with an error
