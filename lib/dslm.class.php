@@ -615,7 +615,7 @@ class Dslm {
    *  Returns the profile string we just switched to.
    */
   public function manageCustomPackage($name) {
-    //drush_include(DRUSH_BASE_PATH . '/commands/core/drupal', 'environment_7');
+
     // Set some path variables to make things easier
     $root = getcwd();
     $base = $this->base;
@@ -649,18 +649,16 @@ class Dslm {
 
           symlink($relpath, $dest_dir . $dir);
           
-          //if (!drush_module_exists($name)) {
-            drush_invoke_process("@self", "pm-enable", array($name));
-          //} 
-          //if (drush_invoke('pm-enable', array($name)) === FALSE) {
-          //  return drush_set_error('QUICK_DRUPAL_PROJECT_ENABLE_FAIL', 'Project enable failed.');
-          //}
-  
         }
       }
     }
     
-    return "$name";
+    // Enable ONLY the root module... treat like a profile
+    // Anything else that needs to be enabled should be done within these as
+    // a dependecy or in an update hook
+    drush_invoke_process("@self", "pm-enable", array($name));
+    
+    return $name;
   }
 
 
