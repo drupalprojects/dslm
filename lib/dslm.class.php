@@ -601,7 +601,7 @@ class Dslm {
     $relpath = $this->getRelativePath($source_dir, $dest_dir);
 
     // Working symlink
-    symlink($relpath . $source_name, $dest_profile_dir . $name);
+    symlink($relpath . $source_name, $dest_dir . $name);
     return "$name-$version";
   }
   
