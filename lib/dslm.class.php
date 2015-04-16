@@ -592,7 +592,7 @@ class Dslm {
     }
     
     if (file_exists($dest_dir. $name)) {
-      //remove it and readd it because we might be changing the version?
+      //remove it and read it because we might be changing the version?
       $this->removeSymlink($dest_dir . $name);
     }
 
