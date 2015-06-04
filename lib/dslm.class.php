@@ -647,7 +647,7 @@ class Dslm {
           // does not work... created getRelativePath vs. altering
           $relpath = $this->getRelativePath($source_dir, $dest_dir .  $dir);
 
-          symlink($relpath, $dest_dir . $dir);
+          symlink($relpath . $type . '/custom/' . $dir, $dest_dir . $dir);
           
         }
       }
