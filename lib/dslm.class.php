@@ -579,8 +579,10 @@ class Dslm {
     // Set some path variables to make things easier
     $dir = getcwd();
     $base = $this->base;
-    //$dest_profiles_dir = "$dir/sites/all/$type/contrib/$name";
-    $dest_dir = "$dir/sites/all/$type/contrib/";
+    $dest_dir = "$dir/sites/all/$type/";
+    if ($type == 'modules') {
+      $dest_dir .= "contrib/"; 
+    }
     $source_dir = "$base/packages/contrib/$type/";
 
     // if current?
