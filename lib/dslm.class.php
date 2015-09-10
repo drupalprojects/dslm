@@ -10,6 +10,13 @@ class Dslm {
    * @var string
    */
   protected $base = FALSE;
+  
+   /**
+   * The package folder
+   *
+   * @var string
+   */
+  protected $package = FALSE;
 
   /**
    * The last error produced
@@ -56,11 +63,14 @@ class Dslm {
    */
   public function __construct($base) {
     // Validate the base
-    if ($valid_base = $this->validateBase($base)) {
+    if ($valid_base = $this->validateDir($base)) {
       $this->base = $valid_base;
     } else {
       $this->last_error = sprintf("The base dir \"%s\" is invalid. Please see the dslm README for more information on the dslm-base directory.", $base);
     }
+    
+     // Validate the base?
+    
   }
 
   /**
@@ -574,16 +584,16 @@ class Dslm {
    * @return string
    *  Returns the profile string we just switched to.
    */
-  public function manageContribPackage($name, $version, $type) {
-
+  public function manageContribPackage($name, $version, $type, $base) {
+    //drush_print($type);
     // Set some path variables to make things easier
     $dir = getcwd();
-    $base = $this->base;
+
     $dest_dir = "$dir/sites/all/$type/";
     if ($type == 'modules') {
       $dest_dir .= "contrib/"; 
     }
-    $source_dir = "$base/packages/contrib/$type/";
+    $source_dir = "$base/contrib/$type/";
 
     // if current?
     if ($version == 'current') {
@@ -594,14 +604,16 @@ class Dslm {
     }
     
     if (file_exists($dest_dir. $name)) {
-      //remove it and read it because we might be changing the version?
+      //remove it and readd it because we might be changing the version?
       $this->removeSymlink($dest_dir . $name);
     }
 
     // Relative path between the two folders. Original relpath
     // does not work... created getRelativePath vs. altering
     $relpath = $this->getRelativePath($source_dir, $dest_dir);
-
+    
+    //drush_print($relpath);
+    //drush_print($dest_dir);
     // Working symlink
     symlink($relpath . $source_name, $dest_dir . $name);
     return "$name-$version";
@@ -616,19 +628,18 @@ class Dslm {
    * @return string
    *  Returns the profile string we just switched to.
    */
-  public function manageCustomPackage($name) {
+  public function manageCustomPackage($name, $base) {
 
     // Set some path variables to make things easier
     $root = getcwd();
-    $base = $this->base;
-    $source_dir = "$base/packages/custom/$name";
+    $source_dir = "$base/custom/$name";
     
     // add individual symlinks for all modules, themes, and library directories
     // that exist in source
     $types = array('modules', 'themes', 'libraries');
     foreach ($types as $type) {
       $dest_dir = "$root/sites/all/$type/custom/";
-      
+ 
       //check to see if the custom dir exists in the target
       if (!file_exists($root . '/sites/all/' . $type . '/custom/')) {
         mkdir($root . '/sites/all/' . $type . '/custom/');
@@ -644,7 +655,9 @@ class Dslm {
       // don't try to read themes or libraries if they don't exist in project
       if (file_exists($source_dir . '/' . $type . '/custom')) {
         $dirs = $this->filesInDir($source_dir . '/' . $type . '/custom');
+
         foreach($dirs as $dir) {
+   
           // Relative path between the two folders. Original relpath
           // does not work... created getRelativePath vs. altering
           $relpath = $this->getRelativePath($source_dir, $dest_dir .  $dir);
@@ -771,7 +784,7 @@ class Dslm {
    * @return FALSE or valid base
    *  Return FALSE or a validated base
    */
-  protected function validateBase($base) {
+  protected function validateDir($base) {
     if (is_dir($base)) {
       $contents = $this->filesInDir($base);
       $check_for = array('cores');

@@ -27,7 +27,8 @@ function dslm_drush_command() {
 
   // Global dslm arguments
   $arguments = array(
-    'dslm-base' => 'Change the dslm base directory'
+    'dslm-base' => 'Change the dslm base directory',
+    'package-base' => 'Change the package base directory',
   );
 
   $release_options = array(
@@ -139,6 +140,7 @@ function drush_dslm() {
     return drush_set_error($dslm->lastError());
   }
   $out = 'DSLM BASE: ' . $info['dslm_base'] . "\n";
+  $out .= 'PACKAGE BASE: ' . $info['package_base'] . "\n";
   $out .= 'DIRECTORY: ' . $info['directory'];
 
   if ($format = drush_get_option('format', FALSE)) {
@@ -547,9 +549,14 @@ function drush_dslm_add_custom() {
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
-  // why can't I use $dslm->base?
-  $base = _dslm_get_base();
+  
+  $base = _dslm_get_package_base();
 
+  //check to see that packages exists in dslm_base or is configured
+  if (!file_exists($base)) {
+    return drush_set_error('Directory not found. Place packages directory in dslm_base or define correct path in packages_base variable');
+  }
+  
   if (!$info = $dslm->siteInfo()) {
     return drush_set_error($dslm->lastError());
   }
@@ -566,12 +573,12 @@ function drush_dslm_add_custom() {
     // check to see if package is in dslm_base/packages to determine if this is a module, theme, or library
 
     // this code could be condensed, but it works
-    if(!file_exists($base . '/packages/custom/' . $request)) {
+    if(!file_exists($base . '/custom/' . $request)) {
       return drush_set_error($request . ' not found in packages/custom');
     }
 
     // Run the DSLM manageContribPackage method to add the project or deal with an error
-    if ($dslm->manageCustomPackage($request)) {
+    if ($dslm->manageCustomPackage($request, $base)) {
       drush_log(dt('Symlinks for ' . $request . ' added.', array('!projects' => $arg_list)), 'success');
     }
     else {
@@ -590,9 +597,14 @@ function drush_dslm_add_contrib() {
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
-  // why can't I use $dslm->base?
-  $base = _dslm_get_base();
+  
+  $base = _dslm_get_package_base();
 
+  //check to see that packages exists in dslm_base or is configured
+  if (!file_exists($base)) {
+    return drush_set_error('Directory not found. Place packages directory in dslm_base or define correct path in packages_base variable');
+  }
+   
   if (!$info = $dslm->siteInfo()) {
     return drush_set_error($dslm->lastError());
   }
@@ -621,21 +633,22 @@ function drush_dslm_add_contrib() {
       $request['name'] = $request_name;
     }
 
-    // check to see if package is in dslm_base/packages to determine if this is a module, theme, or library
+    // check to see if package is in dslm_base/packages or a package_base is defined
+    // to determine if this is a module, theme, or library
     
     //only check if it hasn't been set
     $request['type'] = FALSE;
     
     // this code could be condensed, but it works
-    if(file_exists($base . '/packages/contrib/modules/' . $request['name'])) {
+    if(file_exists($base . '/contrib/modules/' . $request['name'])) {
       $request['type'] = 'modules';
     }
     
-    if(!$request['type'] && file_exists($base . '/packages/contrib/themes/' . $request['name'])) {
+    if(!$request['type'] && file_exists($base . '/contrib/themes/' . $request['name'])) {
       $request['type'] = 'themes';
     }
     
-    if(!$request['type'] && file_exists($base . '/packages/contrib/libraries/' . $request['name'])) {
+    if(!$request['type'] && file_exists($base . '/contrib/libraries/' . $request['name'])) {
       $request['type'] = 'libraries';
     }
     
@@ -646,7 +659,7 @@ function drush_dslm_add_contrib() {
     // check to see if we want a specific version
     if ($request['version']) {
       //and that the version we want exists in dslm_base
-      if(!file_exists($base . '/packages/contrib/' . $request['type'] . '/' . $request['name'] . '/' . $request['name'] . '-' . $request['version'])) {
+      if(!file_exists($base . '/contrib/' . $request['type'] . '/' . $request['name'] . '/' . $request['name'] . '-' . $request['version'])) {
         return drush_set_error('Version' . $request['version'] . ' not found for ' . $request['name']);
       }
     }
@@ -654,13 +667,13 @@ function drush_dslm_add_contrib() {
     // if there is no version specified, use current
     if (!$request['version']) {
        $request['version'] = 'current';
-       if(!file_exists($base . '/packages/contrib/' . $request['type'] . '/' . $request['name'] . '/current')) {
+       if(!file_exists($base . '/contrib/' . $request['type'] . '/' . $request['name'] . '/current')) {
         return drush_set_error('Current not found for ' . $request['name']);
       }
     }
    
     // Run the DSLM manageContribPackage method to add the project or deal with an error
-    if ($dslm->manageContribPackage($request['name'], $request['version'], $request['type'])) {
+    if ($dslm->manageContribPackage($request['name'], $request['version'], $request['type'], $base)) {
       drush_log(dt('Symlinks for ' . $request['name'] . ' added.', array('!projects' => $arg_list)), 'success');
     }
     else {
@@ -695,7 +708,7 @@ function _dslm_bootstrap() {
  * Internal helper function to get the dslm drupal base folder
  * Reads the following locations in order:
  * - The cli switch --dslm-base=base
- * - The drushrc.php file $conf['dslm_base'] = base;
+ * - The drushrc.php file $conf['dslm_base'] = /path/to/base;
  * - The dslm_BASE system environment variable
  * @return string
  *  Returns a base path or FALSE
@@ -731,3 +744,47 @@ function _dslm_get_base() {
   return $base;
 }
 
+/**
+ * Internal helper function to get the dslm package base folder
+ * Reads the following locations in order:
+ * - The cli switch --package-base=base
+ * - The drushrc.php file $conf['package_base'] = /path/to/base;
+ * - The dslm_BASE system environment variable
+ * @return string
+ *  Returns a base path or FALSE
+ */
+function _dslm_get_package_base() {
+  // Initialize an empty base.
+  $base = '';
+
+  // Try to get a base from one of the appropriate sources
+  if ($base_check = drush_get_option('packages-base', FALSE)) {
+    // We have this wet with --dslm-base on the cli
+    $base = $base_check;
+  }
+  elseif ($base_check = drush_get_option('packages_base', FALSE)) {
+    // We have this set in the drushrc.php file
+    $base = $base_check;
+  }
+  else {
+    // Last ditch is to use the environment variable if it's set.
+    if (getenv('PACKAGES_BASE')) {
+      $base = getenv('PACKAGES_BASE');
+    } else {
+      // If we got here and there wasn't an environment variable set, bail
+      return FALSE;
+    }
+  }
+
+  // PHP doesn't resolve ~ as the home directory.
+  if (isset($_SERVER['HOME'])) {
+    $base = preg_replace('/^\~/', $_SERVER['HOME'], $base);
+  }
+  
+  //if the base hasn't been configured, assume packages are at the root of the base
+  if (!$base) { 
+    $base = _dslm_get_base() . '/packages';   
+  }
+
+  return $base;
+}
