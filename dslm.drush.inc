@@ -28,7 +28,7 @@ function dslm_drush_command() {
   // Global dslm arguments
   $arguments = array(
     'dslm-base' => 'Change the dslm base directory',
-    'package-base' => 'Change the package base directory',
+    'packages-base' => 'Change the package base directory',
   );
 
   $release_options = array(
@@ -125,6 +125,12 @@ function dslm_drush_command() {
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
   );
 
+  $items['dslm-remove-all-custom'] = array(
+    'description' => 'DSLM Remove All Symlinks for Custom Projects',
+    'arguments' => $arguments,
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
+  ); 
+  
   return $items;
 }
 
@@ -139,10 +145,12 @@ function drush_dslm() {
   if (!$info = $dslm->dslmInfo()) {
     return drush_set_error($dslm->lastError());
   }
+  
+  // $info['packages_base'] is returning 0... need to fix
   $out = 'DSLM BASE: ' . $info['dslm_base'] . "\n";
-  $out .= 'PACKAGE BASE: ' . $info['package_base'] . "\n";
-  $out .= 'DIRECTORY: ' . $info['directory'];
-
+  $out .= 'PACKAGES BASE: ' . _dslm_get_packages_base() . "\n";
+  $out .= 'DIRECTORY: ' . $info['directory'] . "\n";
+  $out .= 'DSLM DIRECTORY: ' . __FILE__;
   if ($format = drush_get_option('format', FALSE)) {
     drush_print(drush_format($info, '', $format));
   }
@@ -539,55 +547,6 @@ function drush_dslm_remove_profile() {
   }
 }
 
-
-/**
- * Command callback. Adds symlink for custom project to sites/all/TYPE/custom
- */
-function drush_dslm_add_custom() {
-  drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
-  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
-  if (!$dslm = _dslm_bootstrap()) {
-    return FALSE;
-  }
-  
-  $base = _dslm_get_package_base();
-
-  //check to see that packages exists in dslm_base or is configured
-  if (!file_exists($base)) {
-    return drush_set_error('Directory not found. Place packages directory in dslm_base or define correct path in packages_base variable');
-  }
-  
-  if (!$info = $dslm->siteInfo()) {
-    return drush_set_error($dslm->lastError());
-  }
-
-  $args = drush_get_arguments();
-  
-  unset($args[0]);
-  
-  $arg_list = implode(", ", $args);
-  
-  $requests = pm_parse_arguments($args);
-
-  foreach ($requests as $request) {
-    // check to see if package is in dslm_base/packages to determine if this is a module, theme, or library
-
-    // this code could be condensed, but it works
-    if(!file_exists($base . '/custom/' . $request)) {
-      return drush_set_error($request . ' not found in packages/custom');
-    }
-
-    // Run the DSLM manageContribPackage method to add the project or deal with an error
-    if ($dslm->manageCustomPackage($request, $base)) {
-      drush_log(dt('Symlinks for ' . $request . ' added.', array('!projects' => $arg_list)), 'success');
-    }
-    else {
-      return drush_set_error($dslm->lastError());
-    }
-  }
-
-}
-
 /**
  * Command callback. Adds symlink for custom project to sites/all
  */
@@ -598,7 +557,7 @@ function drush_dslm_add_contrib() {
     return FALSE;
   }
   
-  $base = _dslm_get_package_base();
+  $base = _dslm_get_packages_base();
 
   //check to see that packages exists in dslm_base or is configured
   if (!file_exists($base)) {
@@ -684,6 +643,80 @@ function drush_dslm_add_contrib() {
 }
 
 /**
+ * Command callback. Adds symlink for custom project to sites/all/TYPE/custom
+ */
+function drush_dslm_add_custom() {
+  drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
+  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  if (!$dslm = _dslm_bootstrap()) {
+    return FALSE;
+  }
+  
+  $base = _dslm_get_packages_base();
+
+  //check to see that packages exists in dslm_base or is configured
+  if (!file_exists($base)) {
+    return drush_set_error('Directory not found. Place packages directory in dslm_base or define correct path in packages_base variable');
+  }
+  
+  if (!$info = $dslm->siteInfo()) {
+    return drush_set_error($dslm->lastError());
+  }
+
+  $args = drush_get_arguments();
+  
+  unset($args[0]);
+  
+  $arg_list = implode(", ", $args);
+  
+  $requests = pm_parse_arguments($args);
+
+  foreach ($requests as $request) {
+	$count = 0;
+	
+    // this code could be condensed, but it works
+    if(!file_exists($base . '/custom/' . $request)) {
+      return drush_set_error($request . ' not found in packages/custom');
+    }
+
+    // Run the DSLM manageContribPackage method to add the project or deal with an error
+    if ($count = $dslm->manageCustomPackage($request, $base)) {
+      drush_log(dt('!count symlinks for !request added.', array('!request' => $request, '!count' => $count)), 'success');
+    }
+    else {	
+	  if (!$count) {
+	    drush_log(dt('No new symlinks add.'));
+      } else {
+        return drush_set_error($dslm->lastError());
+      }
+    }
+  }
+
+}
+
+/**
+ * Command callback. Adds symlink for custom project to sites/all/TYPE/custom
+ */
+function drush_dslm_remove_all_custom() {
+  drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
+  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  if (!$dslm = _dslm_bootstrap()) {
+    return FALSE;
+  }
+ 
+  if (!$info = $dslm->siteInfo()) {
+    return drush_set_error($dslm->lastError());
+  }
+
+  if($number_removed = $dslm->removeAllCustomPackages()) {
+    drush_log(dt('!number symlinks removed.', array('!number' => $number_removed)), 'success');
+  }
+  else {
+    return drush_set_error($dslm->lastError());
+  }
+}
+
+/**
  * Internal bootstrap function
  * @return object
  *  Returns an instantiated Dslm object
@@ -692,9 +725,13 @@ function _dslm_bootstrap() {
   if (!$base = _dslm_get_base()) {
     return drush_set_error(dt('Please set a DSLM Drupal base in order for DSLM commands to work.'));
   }
-
+  
+  if (!$packages_base = _dslm_get_packages_base()) {
+    $packages_base = $base . '/pacakges/';
+  }
+  
   // Instantiate the dslm object
-  $dslm = new Dslm($base);
+  $dslm = new Dslm($base, $packages_base);
 
   // If the base is bad on construct an error will be set
   if ($last_error = $dslm->lastError()) {
@@ -747,13 +784,13 @@ function _dslm_get_base() {
 /**
  * Internal helper function to get the dslm package base folder
  * Reads the following locations in order:
- * - The cli switch --package-base=base
- * - The drushrc.php file $conf['package_base'] = /path/to/base;
+ * - The cli switch --packages-base=base
+ * - The drushrc.php file $conf['packages_base'] = /path/to/base;
  * - The dslm_BASE system environment variable
  * @return string
  *  Returns a base path or FALSE
  */
-function _dslm_get_package_base() {
+function _dslm_get_packages_base() {
   // Initialize an empty base.
   $base = '';
 

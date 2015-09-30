@@ -16,7 +16,7 @@ class Dslm {
    *
    * @var string
    */
-  protected $package = FALSE;
+  protected $packages_base = FALSE;
 
   /**
    * The last error produced
@@ -60,8 +60,10 @@ class Dslm {
    *
    * @param $base
    *  The base path containing the profiles and cores
+   * @param $packages_base
+   *  The base path containing custom and contrib packages
    */
-  public function __construct($base) {
+  public function __construct($base, $packages_base) {
     // Validate the base
     if ($valid_base = $this->validateDir($base)) {
       $this->base = $valid_base;
@@ -255,6 +257,7 @@ class Dslm {
     }
     $out['directory'] = $d;
     $out['dslm_base'] = $this->getBase();
+    $out['packages_base'] = $this->getPackagesBase();
 
     return $out;
   }
@@ -632,6 +635,7 @@ class Dslm {
 
     // Set some path variables to make things easier
     $root = getcwd();
+    $i = 0;
     $source_dir = "$base/custom/$name";
     
     // add individual symlinks for all modules, themes, and library directories
@@ -644,38 +648,70 @@ class Dslm {
       if (!file_exists($root . '/sites/all/' . $type . '/custom/')) {
         mkdir($root . '/sites/all/' . $type . '/custom/');
       }
-        
-      //remove any existing symlinks and readd it because
-      // they may have been removed from the submodule
-      $existing_symlinks = $this->filesInDir($dest_dir);
-      foreach($existing_symlinks as $link) {
-        $this->removeSymlink($dest_dir . $link);
-      }
 
       // don't try to read themes or libraries if they don't exist in project
       if (file_exists($source_dir . '/' . $type . '/custom')) {
         $dirs = $this->filesInDir($source_dir . '/' . $type . '/custom');
 
         foreach($dirs as $dir) {
-   
-          // Relative path between the two folders. Original relpath
-          // does not work... created getRelativePath vs. altering
-          $relpath = $this->getRelativePath($source_dir, $dest_dir .  $dir);
-
-          symlink($relpath . $type . '/custom/' . $dir, $dest_dir . $dir);
           
+          if (!file_exists($dest_dir .  $dir)) {
+            // Relative path between the two folders. Original relpath
+            // does not work... created getRelativePath vs. altering
+            $relpath = $this->getRelativePath($source_dir, $dest_dir .  $dir);
+
+            symlink($relpath . $type . '/custom/' . $dir, $dest_dir . $dir);
+            $i++;
+	      }
         }
       }
     }
     
-    // Enable ONLY the root module... treat like a profile
-    // Anything else that needs to be enabled should be done within these as
-    // a dependecy or in an update hook
-    drush_invoke_process("@self", "pm-enable", array($name));
+    // only enable if root custom module exists... otherwise drush
+    // will try to download a project w/ the same name from D.O.
+    if (file_exists($root . '/sites/all/modules/custom/' . $name)) {
+      // Enable ONLY the root module... treat like a profile
+      // Anything else that needs to be enabled should be done within these as
+      // a dependecy or in an update hook
+      drush_invoke_process("@self", "pm-enable", array($name));
+    }
     
-    return $name;
+    return $i;
   }
 
+   /**
+   * Manage Custom Package
+   *
+   * @param string $name
+   *  The profile name
+   *
+   * @return int
+   *  Returns the number of symlinks deleted
+   */
+  public function removeAllCustomPackages() {
+
+    // Set some path variables to make things easier
+    $root = getcwd();
+    $i = 0;
+    
+    // add individual symlinks for all modules, themes, and library directories
+    // that exist in source
+    $types = array('modules', 'themes', 'libraries');
+    foreach ($types as $type) {
+      $dest_dir = "$root/sites/all/$type/custom/";
+      
+      //remove any existing symlinks 
+      $existing_paths = $this->filesInDir($dest_dir);
+      foreach ($existing_paths as $path) {
+		if(is_link($dest_dir . $path)) {
+          $this->removeSymlink($dest_dir . $path);
+          $i++;
+	    }
+      }
+    }
+    
+    return $i;
+  }
 
   /**
    * Get the last error
@@ -696,6 +732,19 @@ class Dslm {
     // @todo replace all calls to $this->getBase() with a reference to the $this->base attribute
     // Base is now validated on instantiation, this is here for backward compatibility
     return $this->base;
+  }
+  
+  /**
+   * Returns the dslm-pacakge-base from $this->package-base
+   *
+   * @return string
+   *  Return $this->packages-base
+   */
+  public function getPackagesBase() {
+    // @todo replace all calls to $this->getBase() with a reference to the $this->base attribute
+    // Base is now validated on instantiation, this is here for backward compatibility
+    drush_print_r('testing 1,2,3');
+    return $this->packages-base;
   }
 
   /**
