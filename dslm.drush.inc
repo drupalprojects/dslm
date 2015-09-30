@@ -149,7 +149,7 @@ function drush_dslm() {
   // $info['packages_base'] is returning 0... need to fix
   $out = 'DSLM BASE: ' . $info['dslm_base'] . "\n";
   $out .= 'PACKAGES BASE: ' . _dslm_get_packages_base() . "\n";
-  $out .= 'DIRECTORY: ' . $info['directory'] . "\n";
+  $out .= 'SITE DIRECTORY: ' . $info['directory'] . "\n";
   $out .= 'DSLM DIRECTORY: ' . __FILE__;
   if ($format = drush_get_option('format', FALSE)) {
     drush_print(drush_format($info, '', $format));
