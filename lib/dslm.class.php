@@ -743,7 +743,6 @@ class Dslm {
   public function getPackagesBase() {
     // @todo replace all calls to $this->getBase() with a reference to the $this->base attribute
     // Base is now validated on instantiation, this is here for backward compatibility
-    drush_print_r('testing 1,2,3');
     return $this->packages-base;
   }
 
