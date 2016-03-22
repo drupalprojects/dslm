@@ -11,6 +11,20 @@ class Dslm {
    */
   protected $base = FALSE;
   
+  /**
+   * The cores folder
+   *
+   * @var string
+   */
+  protected $cores_base = FALSE;
+  
+  /**
+   * The profiles folder
+   *
+   * @var string
+   */
+  protected $profiles_base = FALSE;
+  
    /**
    * The package folder
    *
@@ -59,19 +73,27 @@ class Dslm {
    * DSLM constructor
    *
    * @param $base
-   *  The base path containing the profiles and cores
+   *  The base path containing the cores, profiles and packages
+   * @param $cores_base
+   *  The base path containing only cores
+   * @param $profiles
+   *  The base path containing only profiles
    * @param $packages_base
    *  The base path containing custom and contrib packages
    */
-  public function __construct($base, $packages_base) {
+  public function __construct($base, $cores_base, $profiles_base, $packages_base) {
+    
     // Validate the base
     if ($valid_base = $this->validateDir($base)) {
       $this->base = $valid_base;
     } else {
       $this->last_error = sprintf("The base dir \"%s\" is invalid. Please see the dslm README for more information on the dslm-base directory.", $base);
     }
-    
-     // Validate the base?
+
+    // @TODO: Validate the other bases?
+    $this->cores_base = $cores_base;
+    $this->profiles_base = $profiles_base;
+    $this->packages_base = $packages_base;
     
   }
 
@@ -96,7 +118,7 @@ class Dslm {
     $pre_releases = array();
     $releases = array();
 
-    foreach ($this->filesInDir($this->getBase() . "/cores/") as $core) {
+    foreach ($this->filesInDir($this->cores_base) as $core) {
       if ($this->isCoreString($core)) {
         $all[] = $core;
 
@@ -127,7 +149,7 @@ class Dslm {
    */
   public function getProfiles() {
     // If the base has no profiles, return empty array.
-    if (!file_exists($this->getBase(). '/profiles/')) {
+    if (!file_exists($this->profiles_base)) {
       return array();
     }
 
@@ -137,7 +159,7 @@ class Dslm {
     $dev_regex = '/[dev|alph|beta|rc|pl]+[\.\d]*$/i';
 
     // Iterate through and get the profiles into named groups
-    foreach ($this->filesInDir($this->getBase() . "/profiles/") as $profile) {
+    foreach ($this->filesInDir($this->profiles_base) as $profile) {
       if ($matches = $this->isProfileString($profile)) {
 
         $profiles[$matches[1]]['all'][] = $matches[2];
@@ -257,6 +279,8 @@ class Dslm {
     }
     $out['directory'] = $d;
     $out['dslm_base'] = $this->getBase();
+    $out['cores_base'] = $this->getCoresBase();
+    $out['profiles_base'] = $this->getProfilesBase();
     $out['packages_base'] = $this->getPackagesBase();
 
     return $out;
@@ -632,7 +656,7 @@ class Dslm {
    *  Returns the profile string we just switched to.
    */
   public function manageCustomPackage($name, $base) {
-
+    
     // Set some path variables to make things easier
     $root = getcwd();
     $i = 0;
@@ -642,19 +666,19 @@ class Dslm {
     // that exist in source
     $types = array('modules', 'themes', 'libraries');
     foreach ($types as $type) {
+
       $dest_dir = "$root/sites/all/$type/custom/";
  
       //check to see if the custom dir exists in the target
       if (!file_exists($root . '/sites/all/' . $type . '/custom/')) {
         mkdir($root . '/sites/all/' . $type . '/custom/');
       }
-
+      
       // don't try to read themes or libraries if they don't exist in project
       if (file_exists($source_dir . '/' . $type . '/custom')) {
         $dirs = $this->filesInDir($source_dir . '/' . $type . '/custom');
 
         foreach($dirs as $dir) {
-          
           if (!file_exists($dest_dir .  $dir)) {
             // Relative path between the two folders. Original relpath
             // does not work... created getRelativePath vs. altering
@@ -662,7 +686,7 @@ class Dslm {
 
             symlink($relpath . $type . '/custom/' . $dir, $dest_dir . $dir);
             $i++;
-	      }
+	        }
         }
       }
     }
@@ -670,6 +694,22 @@ class Dslm {
     // only enable if root custom module exists... otherwise drush
     // will try to download a project w/ the same name from D.O.
     if (file_exists($root . '/sites/all/modules/custom/' . $name)) {
+      
+      // Add additional symlinks from packages if bundle_packages defined
+      // @TODO: Need logic to prevent recursion
+      $project_info_file = $source_dir . '/modules/custom/' . $name . '/' . $name . '.info';
+      // parse for bundle_packages
+      // /data/code/packages_base/custom/cu_advanced_site_building_bundle/libraries/custom/cu_advanced_site_building_bundle/cu_advanced_site_building_bundle.info
+      if (file_exists($project_info_file)) {
+        $info = $this->parseInfoFormat(file_get_contents($project_info_file));
+        $packages = array_map('trim', explode(',', $info['bundle_contrib_packages']));
+        foreach($packages as $package) {
+          drush_print_r('Adding symlink for bundle package dependency for ' . $package);
+          //@TODO: more logic needed for version and anything other than modules
+          $this->manageContribPackage($package, 'current', 'modules', $base);
+        }
+      }  
+      
       // Enable ONLY the root module... treat like a profile
       // Anything else that needs to be enabled should be done within these as
       // a dependecy or in an update hook
@@ -722,6 +762,9 @@ class Dslm {
     return $this->last_error;
   }
 
+  // @todo replace all calls to $this->get[Type]Base() with a reference to the $this->[type]base attribute
+  // Base is now validated on instantiation, this is here for backward compatibility
+
   /**
    * Returns the dslm-base from $this->base
    *
@@ -729,8 +772,6 @@ class Dslm {
    *  Return $this->base
    */
   public function getBase() {
-    // @todo replace all calls to $this->getBase() with a reference to the $this->base attribute
-    // Base is now validated on instantiation, this is here for backward compatibility
     return $this->base;
   }
   
@@ -740,9 +781,27 @@ class Dslm {
    * @return string
    *  Return $this->packages-base
    */
+  public function getCoresBase() {
+    return $this->cores-base;
+  }
+  
+  /**
+   * Returns the dslm-pacakge-base from $this->package-base
+   *
+   * @return string
+   *  Return $this->packages-base
+   */
+  public function getProfilesBase() {
+    return $this->profiles-base;
+  }
+  
+  /**
+   * Returns the dslm-package-base from $this->package-base
+   *
+   * @return string
+   *  Return $this->packages-base
+   */
   public function getPackagesBase() {
-    // @todo replace all calls to $this->getBase() with a reference to the $this->base attribute
-    // Base is now validated on instantiation, this is here for backward compatibility
     return $this->packages-base;
   }
 
@@ -1137,6 +1196,73 @@ class Dslm {
     }
     return FALSE;
   }
+
+  /**  
+   * Check for 
+	 *
+	 * @param $data
+	 *   A string to parse.
+	 *
+	 * @return
+	 *   The info array.
+	 *
+	 * @see drupal_parse_info_file()
+	 */
+  public function parseInfoFormat($data) {
+	  $info = array();
+
+	  if (preg_match_all('
+		@^\s*                           # Start at the beginning of a line, ignoring leading whitespace
+		((?:
+		  [^=;\[\]]|                    # Key names cannot contain equal signs, semi-colons or square brackets,
+		  \[[^\[\]]*\]                  # unless they are balanced and not nested
+		)+?)
+		\s*=\s*                         # Key/value pairs are separated by equal signs (ignoring white-space)
+		(?:
+		  ("(?:[^"]|(?<=\\\\)")*")|     # Double-quoted string, which may contain slash-escaped quotes/slashes
+		  (\'(?:[^\']|(?<=\\\\)\')*\')| # Single-quoted string, which may contain slash-escaped quotes/slashes
+		  ([^\r\n]*?)                   # Non-quoted string
+		)\s*$                           # Stop at the next end of a line, ignoring trailing whitespace
+		@msx', $data, $matches, PREG_SET_ORDER)) {
+		foreach ($matches as $match) {
+		  // Fetch the key and value string.
+		  $i = 0;
+		  foreach (array('key', 'value1', 'value2', 'value3') as $var) {
+			$$var = isset($match[++$i]) ? $match[$i] : '';
+		  }
+		  $value = stripslashes(substr($value1, 1, -1)) . stripslashes(substr($value2, 1, -1)) . $value3;
+
+		  // Parse array syntax.
+		  $keys = preg_split('/\]?\[/', rtrim($key, ']'));
+		  $last = array_pop($keys);
+		  $parent = &$info;
+
+		  // Create nested arrays.
+		  foreach ($keys as $key) {
+			if ($key == '') {
+			  $key = count($parent);
+			}
+			if (!isset($parent[$key]) || !is_array($parent[$key])) {
+			  $parent[$key] = array();
+			}
+			$parent = &$parent[$key];
+		  }
+
+		  // Handle PHP constants.
+		  if (preg_match('/^\w+$/i', $value) && defined($value)) {
+			$value = constant($value);
+		  }
+
+		  // Insert actual value.
+		  if ($last == '') {
+			$last = count($parent);
+		  }
+		  $parent[$last] = $value;
+		}
+	  }
+
+	  return $info;
+	}
 }
 
  

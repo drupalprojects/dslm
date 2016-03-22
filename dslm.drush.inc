@@ -112,13 +112,13 @@ function dslm_drush_command() {
     'arguments' => $arguments,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
   );
-  
+
   $items['dslm-add-contrib'] = array(
     'description' => 'DSLM Add Contrib Project',
     'arguments' => $arguments,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
   );
-  
+
   $items['dslm-add-custom'] = array(
     'description' => 'DSLM Add Custom Project',
     'arguments' => $arguments,
@@ -129,13 +129,13 @@ function dslm_drush_command() {
     'description' => 'DSLM Remove All Symlinks for Custom Projects',
     'arguments' => $arguments,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
-  ); 
-  
+  );
+
   return $items;
 }
 
 /**
- * Command callback. Displays a list of available cores.
+ * Command callback. Displays summery of DSLM configuration.
  */
 function drush_dslm() {
   // Bootstrap dslm, this grabs the instantiated and configured dslm library object
@@ -145,10 +145,12 @@ function drush_dslm() {
   if (!$info = $dslm->dslmInfo()) {
     return drush_set_error($dslm->lastError());
   }
-  
+
   // $info['packages_base'] is returning 0... need to fix
   $out = 'DSLM BASE: ' . $info['dslm_base'] . "\n";
   $out .= 'PACKAGES BASE: ' . _dslm_get_packages_base() . "\n";
+  $out .= 'CORES BASE: ' . _dslm_get_cores_base() . "\n";
+  $out .= 'PROFILES BASE: ' . _dslm_get_profiles_base() . "\n";
   $out .= 'SITE DIRECTORY: ' . $info['directory'] . "\n";
   $out .= 'DSLM DIRECTORY: ' . __FILE__;
   if ($format = drush_get_option('format', FALSE)) {
@@ -556,26 +558,26 @@ function drush_dslm_add_contrib() {
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
-  
+
   $base = _dslm_get_packages_base();
 
   //check to see that packages exists in dslm_base or is configured
   if (!file_exists($base)) {
     return drush_set_error('Directory not found. Place packages directory in dslm_base or define correct path in packages_base variable');
   }
-   
+
   if (!$info = $dslm->siteInfo()) {
     return drush_set_error($dslm->lastError());
   }
 
   $args = drush_get_arguments();
-  
+
   unset($args[0]);
-  
+
   $arg_list = implode(", ", $args);
-  
+
   $requests = pm_parse_arguments($args);
-  
+
   // pm_parse_project_version -> pm_parse_version in drush 7
   if (function_exists(pm_parse_project_version)) {
     $requests = pm_parse_project_version($requests);
@@ -585,7 +587,7 @@ function drush_dslm_add_contrib() {
 
     // pm_parse_project_version -> pm_parse_version in drush 7
     // and no longer sets ['name']
-    
+
     if (function_exists(pm_parse_version)) {
       $request_name = $request;
       $request = pm_parse_version($request);
@@ -594,27 +596,27 @@ function drush_dslm_add_contrib() {
 
     // check to see if package is in dslm_base/packages or a package_base is defined
     // to determine if this is a module, theme, or library
-    
+
     //only check if it hasn't been set
     $request['type'] = FALSE;
-    
+
     // this code could be condensed, but it works
     if(file_exists($base . '/contrib/modules/' . $request['name'])) {
       $request['type'] = 'modules';
     }
-    
+
     if(!$request['type'] && file_exists($base . '/contrib/themes/' . $request['name'])) {
       $request['type'] = 'themes';
     }
-    
+
     if(!$request['type'] && file_exists($base . '/contrib/libraries/' . $request['name'])) {
       $request['type'] = 'libraries';
     }
-    
+
     if (!$request['type']) {
       return drush_set_error($request['name'] . ' not found in modules, themes, or libraries within packages/contrib');
     }
-    
+
     // check to see if we want a specific version
     if ($request['version']) {
       //and that the version we want exists in dslm_base
@@ -622,7 +624,7 @@ function drush_dslm_add_contrib() {
         return drush_set_error('Version' . $request['version'] . ' not found for ' . $request['name']);
       }
     }
-    
+
     // if there is no version specified, use current
     if (!$request['version']) {
        $request['version'] = 'current';
@@ -630,7 +632,7 @@ function drush_dslm_add_contrib() {
         return drush_set_error('Current not found for ' . $request['name']);
       }
     }
-   
+
     // Run the DSLM manageContribPackage method to add the project or deal with an error
     if ($dslm->manageContribPackage($request['name'], $request['version'], $request['type'], $base)) {
       drush_log(dt('Symlinks for ' . $request['name'] . ' added.', array('!projects' => $arg_list)), 'success');
@@ -651,29 +653,29 @@ function drush_dslm_add_custom() {
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
-  
+
   $base = _dslm_get_packages_base();
 
   //check to see that packages exists in dslm_base or is configured
   if (!file_exists($base)) {
     return drush_set_error('Directory not found. Place packages directory in dslm_base or define correct path in packages_base variable');
   }
-  
+
   if (!$info = $dslm->siteInfo()) {
     return drush_set_error($dslm->lastError());
   }
 
   $args = drush_get_arguments();
-  
+
   unset($args[0]);
-  
+
   $arg_list = implode(", ", $args);
-  
+
   $requests = pm_parse_arguments($args);
 
   foreach ($requests as $request) {
 	$count = 0;
-	
+
     // this code could be condensed, but it works
     if(!file_exists($base . '/custom/' . $request)) {
       return drush_set_error($request . ' not found in packages/custom');
@@ -681,9 +683,10 @@ function drush_dslm_add_custom() {
 
     // Run the DSLM manageContribPackage method to add the project or deal with an error
     if ($count = $dslm->manageCustomPackage($request, $base)) {
+      drush_print_r('running...');
       drush_log(dt('!count symlinks for !request added.', array('!request' => $request, '!count' => $count)), 'success');
     }
-    else {	
+    else {
 	  if (!$count) {
 	    drush_log(dt('No new symlinks add.'));
       } else {
@@ -703,7 +706,7 @@ function drush_dslm_remove_all_custom() {
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
- 
+
   if (!$info = $dslm->siteInfo()) {
     return drush_set_error($dslm->lastError());
   }
@@ -722,16 +725,25 @@ function drush_dslm_remove_all_custom() {
  *  Returns an instantiated Dslm object
  */
 function _dslm_bootstrap() {
+  //@TODO: Check can't be on just dslm_base... needs either dslm_base or both cores and profiles
   if (!$base = _dslm_get_base()) {
     return drush_set_error(dt('Please set a DSLM Drupal base in order for DSLM commands to work.'));
   }
-  
-  if (!$packages_base = _dslm_get_packages_base()) {
-    $packages_base = $base . '/pacakges/';
+
+  if (!$cores_base = _dslm_get_cores_base()) {
+    $cores_base = $base . '/cores/';
   }
-  
+
+  if (!$profiles_base = _dslm_get_profiles_base()) {
+    $profiles_base = $base . '/profiles/';
+  }
+
+  if (!$packages_base = _dslm_get_packages_base()) {
+    $packages_base = $base . '/packages/';
+  }
+
   // Instantiate the dslm object
-  $dslm = new Dslm($base, $packages_base);
+  $dslm = new Dslm($base, $cores_base, $profiles_base, $packages_base);
 
   // If the base is bad on construct an error will be set
   if ($last_error = $dslm->lastError()) {
@@ -782,11 +794,101 @@ function _dslm_get_base() {
 }
 
 /**
+ * Internal helper function to get the dslm cores base folder
+ * Reads the following locations in order:
+ * - The cli switch --cores-base=base
+ * - The drushrc.php file $conf['cores_base'] = /path/to/base;
+ * - The CORES_BASE system environment variable
+ * @return string
+ *  Returns a base path or FALSE
+ */
+function _dslm_get_cores_base() {
+  // Initialize an empty base.
+  $base = '';
+
+  // Try to get a base from one of the appropriate sources
+  if ($base_check = drush_get_option('cores-base', FALSE)) {
+    // We have this wet with --dslm-base on the cli
+    $base = $base_check;
+  }
+  elseif ($base_check = drush_get_option('cores_base', FALSE)) {
+    // We have this set in the drushrc.php file
+    $base = $base_check;
+  }
+  else {
+    // Last ditch is to use the environment variable if it's set.
+    if (getenv('CORES_BASE')) {
+      $base = getenv('CORES_BASE');
+    } else {
+      // If we got here and there wasn't an environment variable set, bail
+      return FALSE;
+    }
+  }
+
+  // PHP doesn't resolve ~ as the home directory.
+  if (isset($_SERVER['HOME'])) {
+    $base = preg_replace('/^\~/', $_SERVER['HOME'], $base);
+  }
+
+  //if the base hasn't been configured, assume cores are at the root of the base
+  if (!$base) {
+    $base = _dslm_get_base() . '/cores';
+  }
+
+  return $base;
+}
+
+/**
+ * Internal helper function to get the dslm profiles base folder
+ * Reads the following locations in order:
+ * - The cli switch --profiles-base=base
+ * - The drushrc.php file $conf['profiles_base'] = /path/to/base;
+ * - The PROFILES_BASE system environment variable
+ * @return string
+ *  Returns a base path or FALSE
+ */
+function _dslm_get_profiles_base() {
+  // Initialize an empty base.
+  $base = '';
+
+  // Try to get a base from one of the appropriate sources
+  if ($base_check = drush_get_option('profiles-base', FALSE)) {
+    // We have this wet with --dslm-base on the cli
+    $base = $base_check;
+  }
+  elseif ($base_check = drush_get_option('profiles_base', FALSE)) {
+    // We have this set in the drushrc.php file
+    $base = $base_check;
+  }
+  else {
+    // Last ditch is to use the environment variable if it's set.
+    if (getenv('PROFILES_BASE')) {
+      $base = getenv('PROFILES_BASE');
+    } else {
+      // If we got here and there wasn't an environment variable set, bail
+      return FALSE;
+    }
+  }
+
+  // PHP doesn't resolve ~ as the home directory.
+  if (isset($_SERVER['HOME'])) {
+    $base = preg_replace('/^\~/', $_SERVER['HOME'], $base);
+  }
+
+  //if the base hasn't been configured, assume profiles are at the root of the base
+  if (!$base) {
+    $base = _dslm_get_base() . '/profiles';
+  }
+
+  return $base;
+}
+
+/**
  * Internal helper function to get the dslm package base folder
  * Reads the following locations in order:
  * - The cli switch --packages-base=base
  * - The drushrc.php file $conf['packages_base'] = /path/to/base;
- * - The dslm_BASE system environment variable
+ * - The PACAKGES_BASE system environment variable
  * @return string
  *  Returns a base path or FALSE
  */
@@ -817,10 +919,10 @@ function _dslm_get_packages_base() {
   if (isset($_SERVER['HOME'])) {
     $base = preg_replace('/^\~/', $_SERVER['HOME'], $base);
   }
-  
+
   //if the base hasn't been configured, assume packages are at the root of the base
-  if (!$base) { 
-    $base = _dslm_get_base() . '/packages';   
+  if (!$base) {
+    $base = _dslm_get_base() . '/packages';
   }
 
   return $base;
