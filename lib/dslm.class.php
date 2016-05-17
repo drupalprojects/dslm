@@ -719,11 +719,51 @@ class Dslm {
     return $i;
   }
 
-   /**
-   * Manage Custom Package
+  /**
+   * Remove all packages
    *
-   * @param string $name
-   *  The profile name
+   * @return int
+   *  Returns the number of symlinks deleted
+   */
+  public function removeAllPackages() {
+
+    // Set some path variables to make things easier
+    $root = getcwd();
+    $i = 0;
+
+    // add individual symlinks for all modules, themes, and library directories
+    // that exist in source
+    $groups = array('custom', 'contrib');
+    foreach ($groups as $group) {
+      $project_types = array('modules', 'themes', 'libraries');
+      foreach ($project_types as $project_type) {
+        $dest_dir = "$root/sites/all/$project_type/$group/";
+
+        // Check to make sure directory exists.
+        if (file_exists($dest_dir)) {
+          // Remove any existing symlinks
+          $existing_paths = $this->filesInDir($dest_dir);
+          // Check to see if there are any symlinks to remove, if not exit.
+          if (is_array($existing_paths)) {
+            foreach ($existing_paths as $path) {
+              if (is_link($dest_dir . $path)) {
+                $this->removeSymlink($dest_dir . $path);
+                $i++;
+              }
+            }
+          }
+          else {
+            return;
+          }
+        }
+      }
+    }
+
+    return $i;
+  }
+
+   /**
+   * Remove all Custom Packages
    *
    * @return int
    *  Returns the number of symlinks deleted
@@ -739,17 +779,66 @@ class Dslm {
     $types = array('modules', 'themes', 'libraries');
     foreach ($types as $type) {
       $dest_dir = "$root/sites/all/$type/custom/";
-      
-      //remove any existing symlinks 
-      $existing_paths = $this->filesInDir($dest_dir);
-      foreach ($existing_paths as $path) {
-		if(is_link($dest_dir . $path)) {
-          $this->removeSymlink($dest_dir . $path);
-          $i++;
-	    }
+
+      // Check to make sure directory exists.
+      if (file_exists($dest_dir)) {
+        // Remove any existing symlinks
+        $existing_paths = $this->filesInDir($dest_dir);
+        // Check to see if there are any symlinks to remove, if not exit.
+        if (is_array($existing_paths)) {
+          foreach ($existing_paths as $path) {
+            if (is_link($dest_dir . $path)) {
+              $this->removeSymlink($dest_dir . $path);
+              $i++;
+            }
+          }
+        }
+        else {
+          return;
+        }
       }
     }
-    
+
+    return $i;
+  }
+
+  /**
+   * Remove all Contrib Packages
+   *
+   * @return int
+   *  Returns the number of symlinks deleted
+   */
+  public function removeAllContribPackages() {
+
+    // Set some path variables to make things easier
+    $root = getcwd();
+    $i = 0;
+
+    // add individual symlinks for all modules, themes, and library directories
+    // that exist in source
+    $types = array('modules', 'themes', 'libraries');
+    foreach ($types as $type) {
+      $dest_dir = "$root/sites/all/$type/contrib/";
+
+      // Check to make sure directory exists.
+      if (file_exists($dest_dir)) {
+        // Remove any existing symlinks
+        $existing_paths = $this->filesInDir($dest_dir);
+        // Check to see if there are any symlinks to remove, if not exit.
+        if (is_array($existing_paths)) {
+          foreach ($existing_paths as $path) {
+            if (is_link($dest_dir . $path)) {
+              $this->removeSymlink($dest_dir . $path);
+              $i++;
+            }
+          }
+        }
+        else {
+          return;
+        }
+      }
+    }
+
     return $i;
   }
 

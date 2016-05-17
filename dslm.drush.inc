@@ -125,8 +125,20 @@ function dslm_drush_command() {
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
   );
 
+  $items['dslm-remove-all'] = array(
+    'description' => 'DSLM Remove All Symlinks for Custom and Contrib Projects',
+    'arguments' => $arguments,
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
+  );
+
   $items['dslm-remove-all-custom'] = array(
     'description' => 'DSLM Remove All Symlinks for Custom Projects',
+    'arguments' => $arguments,
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
+  );
+
+  $items['dslm-remove-all-contrib'] = array(
+    'description' => 'DSLM Remove All Symlinks for Contrib Projects',
     'arguments' => $arguments,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
   );
@@ -698,6 +710,28 @@ function drush_dslm_add_custom() {
 }
 
 /**
+ * Command callback. Removes symlinks for projects to sites/all/TYPE/custom and sites/all/TYPE/contrib
+ */
+function drush_dslm_remove_all() {
+  drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
+  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  if (!$dslm = _dslm_bootstrap()) {
+    return FALSE;
+  }
+
+  if (!$info = $dslm->siteInfo()) {
+    return drush_set_error($dslm->lastError());
+  }
+
+  if($number_removed = $dslm->removeAllPackages()) {
+    drush_log(dt('!number symlinks removed.', array('!number' => $number_removed)), 'success');
+  }
+  else {
+    drush_print('There are no symlinks to remove.');
+  }
+}
+
+/**
  * Command callback. Adds symlink for custom project to sites/all/TYPE/custom
  */
 function drush_dslm_remove_all_custom() {
@@ -715,7 +749,29 @@ function drush_dslm_remove_all_custom() {
     drush_log(dt('!number symlinks removed.', array('!number' => $number_removed)), 'success');
   }
   else {
+    drush_print('There are no symlinks to remove.');
+  }
+}
+
+/**
+ * Command callback. Adds symlink for contrib project to sites/all/TYPE/contrib
+ */
+function drush_dslm_remove_all_contrib() {
+  drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
+  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  if (!$dslm = _dslm_bootstrap()) {
+    return FALSE;
+  }
+
+  if (!$info = $dslm->siteInfo()) {
     return drush_set_error($dslm->lastError());
+  }
+
+  if($number_removed = $dslm->removeAllContribPackages()) {
+    drush_log(dt('!number symlinks removed.', array('!number' => $number_removed)), 'success');
+  }
+  else {
+    drush_print('There are no symlinks to remove.');
   }
 }
 
