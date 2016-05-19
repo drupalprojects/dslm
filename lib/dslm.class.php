@@ -643,7 +643,7 @@ class Dslm {
     //drush_print($dest_dir);
     // Working symlink
     symlink($relpath . $source_name, $dest_dir . $name);
-    return "$name-$version";
+    return $name . '-' . $version;
   }
   
    /**
@@ -693,7 +693,7 @@ class Dslm {
     
     // only enable if root custom module exists... otherwise drush
     // will try to download a project w/ the same name from D.O.
-    if (file_exists($root . '/sites/all/modules/custom/' . $name)) {
+    //if (file_exists($root . '/sites/all/modules/custom/' . $name)) {
       
       // Add additional symlinks from packages if bundle_packages defined
       // @TODO: Need logic to prevent recursion
@@ -704,17 +704,19 @@ class Dslm {
         $info = $this->parseInfoFormat(file_get_contents($project_info_file));
         $packages = array_map('trim', explode(',', $info['bundle_contrib_packages']));
         foreach($packages as $package) {
-          drush_print_r('Adding symlink for bundle package dependency for ' . $package);
-          //@TODO: more logic needed for version and anything other than modules
-          $this->manageContribPackage($package, 'current', 'modules', $base);
+          if ($package) { // there is always an item in this array, so check for null
+            drush_print_r('Adding symlink for bundle package dependency for ' . $package);
+            //@TODO: more logic needed for version and anything other than modules
+            $this->manageContribPackage($package, 'current', 'modules', $base);
+          }
         }
       }  
       
       // Enable ONLY the root module... treat like a profile
       // Anything else that needs to be enabled should be done within these as
       // a dependecy or in an update hook
-      drush_invoke_process("@self", "pm-enable", array($name));
-    }
+      //drush_invoke_process("@self", "pm-enable", array($name));
+    //}
     
     return $i;
   }
