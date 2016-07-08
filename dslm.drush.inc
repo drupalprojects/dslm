@@ -733,15 +733,15 @@ function drush_dslm_add_package() {
     // check to see if we want a specific version
     if ($request['version']) {
       //and that the version we want exists in dslm_base
-      if(!file_exists($base . $request['type'] . '/' . $request['name'] . '/' . $request['name'] . '-' . $request['version'])) {
-        return drush_set_error('Version' . $request['version'] . ' not found for ' . $request['name']);
+      if(!file_exists($base. '/' . $request['type'] . '/' . $request['name'] . '/' . $request['name'] . '-' . $request['version'])) {
+        return drush_set_error('Version ' . $request['version'] . ' not found for ' . $request['name']);
       }
     }
 
     // if there is no version specified, use current
     if (!$request['version']) {
        $request['version'] = 'current';
-       if(!file_exists($base . $request['type'] . '/' . $request['name'] . '/current')) {
+       if(!file_exists($base. '/' . $request['type'] . '/' . $request['name'] . '/current')) {
         return drush_set_error('Current not found for ' . $request['name']);
       }
     }
