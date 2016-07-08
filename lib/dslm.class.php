@@ -10,21 +10,21 @@ class Dslm {
    * @var string
    */
   protected $base = FALSE;
-  
+
   /**
    * The cores folder
    *
    * @var string
    */
   protected $cores_base = FALSE;
-  
+
   /**
    * The profiles folder
    *
    * @var string
    */
   protected $profiles_base = FALSE;
-  
+
    /**
    * The package folder
    *
@@ -82,7 +82,7 @@ class Dslm {
    *  The base path containing custom and contrib packages
    */
   public function __construct($base, $cores_base, $profiles_base, $packages_base) {
-    
+
     // Validate the base
     if ($valid_base = $this->validateDir($base)) {
       $this->base = $valid_base;
@@ -94,7 +94,7 @@ class Dslm {
     $this->cores_base = $cores_base;
     $this->profiles_base = $profiles_base;
     $this->packages_base = $packages_base;
-    
+
   }
 
   /**
@@ -420,7 +420,7 @@ class Dslm {
       }
       symlink("$relpath/$f", "$dest_dir/$f");
     }
-    
+
     // New directory structure in Backdrop and D8
     // - add files at root
     // don't symlink root modules, themes, layouts, or settings.php
@@ -618,18 +618,18 @@ class Dslm {
 
     $dest_dir = "$dir/sites/all/$type/";
     if ($type == 'modules') {
-      $dest_dir .= "contrib/"; 
+      $dest_dir .= "contrib/";
     }
     $source_dir = "$base/contrib/$type/";
 
     // if current?
     if ($version == 'current') {
       $source_name = "$name/current";
-    } 
+    }
     else {
       $source_name = "$name/$name-$version";
     }
-    
+
     if (file_exists($dest_dir. $name)) {
       //remove it and readd it because we might be changing the version?
       $this->removeSymlink($dest_dir . $name);
@@ -638,14 +638,14 @@ class Dslm {
     // Relative path between the two folders. Original relpath
     // does not work... created getRelativePath vs. altering
     $relpath = $this->getRelativePath($source_dir, $dest_dir);
-    
+
     //drush_print($relpath);
     //drush_print($dest_dir);
     // Working symlink
     symlink($relpath . $source_name, $dest_dir . $name);
     return $name . '-' . $version;
   }
-  
+
    /**
    * Manage Custom Package
    *
@@ -656,24 +656,24 @@ class Dslm {
    *  Returns the profile string we just switched to.
    */
   public function manageCustomPackage($name, $base) {
-    
+
     // Set some path variables to make things easier
     $root = getcwd();
     $i = 0;
     $source_dir = "$base/custom/$name";
-    
+
     // add individual symlinks for all modules, themes, and library directories
     // that exist in source
     $types = array('modules', 'themes', 'libraries');
     foreach ($types as $type) {
 
       $dest_dir = "$root/sites/all/$type/custom/";
- 
+
       //check to see if the custom dir exists in the target
       if (!file_exists($root . '/sites/all/' . $type . '/custom/')) {
         mkdir($root . '/sites/all/' . $type . '/custom/');
       }
-      
+
       // don't try to read themes or libraries if they don't exist in project
       if (file_exists($source_dir . '/' . $type . '/custom')) {
         $dirs = $this->filesInDir($source_dir . '/' . $type . '/custom');
@@ -686,15 +686,15 @@ class Dslm {
 
             symlink($relpath . $type . '/custom/' . $dir, $dest_dir . $dir);
             $i++;
-	        }
+          }
         }
       }
     }
-    
+
     // only enable if root custom module exists... otherwise drush
     // will try to download a project w/ the same name from D.O.
     //if (file_exists($root . '/sites/all/modules/custom/' . $name)) {
-      
+
       // Add additional symlinks from packages if bundle_packages defined
       // @TODO: Need logic to prevent recursion
       $project_info_file = $source_dir . '/modules/custom/' . $name . '/' . $name . '.info';
@@ -710,14 +710,14 @@ class Dslm {
             $this->manageContribPackage($package, 'current', 'modules', $base);
           }
         }
-      }  
-      
+      }
+
       // Enable ONLY the root module... treat like a profile
       // Anything else that needs to be enabled should be done within these as
       // a dependecy or in an update hook
       //drush_invoke_process("@self", "pm-enable", array($name));
     //}
-    
+
     return $i;
   }
 
@@ -775,7 +775,7 @@ class Dslm {
     // Set some path variables to make things easier
     $root = getcwd();
     $i = 0;
-    
+
     // add individual symlinks for all modules, themes, and library directories
     // that exist in source
     $types = array('modules', 'themes', 'libraries');
@@ -865,7 +865,7 @@ class Dslm {
   public function getBase() {
     return $this->base;
   }
-  
+
   /**
    * Returns the dslm-pacakge-base from $this->package-base
    *
@@ -875,7 +875,7 @@ class Dslm {
   public function getCoresBase() {
     return $this->cores-base;
   }
-  
+
   /**
    * Returns the dslm-pacakge-base from $this->package-base
    *
@@ -885,7 +885,7 @@ class Dslm {
   public function getProfilesBase() {
     return $this->profiles-base;
   }
-  
+
   /**
    * Returns the dslm-package-base from $this->package-base
    *
@@ -1256,7 +1256,7 @@ class Dslm {
     }
     return implode('/', $relPath);
   }
-  
+
   /**
    * Determine if we're MS Windows
    *
@@ -1288,72 +1288,70 @@ class Dslm {
     return FALSE;
   }
 
-  /**  
-   * Check for 
-	 *
-	 * @param $data
-	 *   A string to parse.
-	 *
-	 * @return
-	 *   The info array.
-	 *
-	 * @see drupal_parse_info_file()
-	 */
+  /**
+   * Check for
+   *
+   * @param $data
+   *   A string to parse.
+   *
+   * @return
+   *   The info array.
+   *
+   * @see drupal_parse_info_file()
+   */
   public function parseInfoFormat($data) {
-	  $info = array();
+    $info = array();
 
-	  if (preg_match_all('
-		@^\s*                           # Start at the beginning of a line, ignoring leading whitespace
-		((?:
-		  [^=;\[\]]|                    # Key names cannot contain equal signs, semi-colons or square brackets,
-		  \[[^\[\]]*\]                  # unless they are balanced and not nested
-		)+?)
-		\s*=\s*                         # Key/value pairs are separated by equal signs (ignoring white-space)
-		(?:
-		  ("(?:[^"]|(?<=\\\\)")*")|     # Double-quoted string, which may contain slash-escaped quotes/slashes
-		  (\'(?:[^\']|(?<=\\\\)\')*\')| # Single-quoted string, which may contain slash-escaped quotes/slashes
-		  ([^\r\n]*?)                   # Non-quoted string
-		)\s*$                           # Stop at the next end of a line, ignoring trailing whitespace
-		@msx', $data, $matches, PREG_SET_ORDER)) {
-		foreach ($matches as $match) {
-		  // Fetch the key and value string.
-		  $i = 0;
-		  foreach (array('key', 'value1', 'value2', 'value3') as $var) {
-			$$var = isset($match[++$i]) ? $match[$i] : '';
-		  }
-		  $value = stripslashes(substr($value1, 1, -1)) . stripslashes(substr($value2, 1, -1)) . $value3;
+    if (preg_match_all('
+    @^\s*                           # Start at the beginning of a line, ignoring leading whitespace
+    ((?:
+      [^=;\[\]]|                    # Key names cannot contain equal signs, semi-colons or square brackets,
+      \[[^\[\]]*\]                  # unless they are balanced and not nested
+    )+?)
+    \s*=\s*                         # Key/value pairs are separated by equal signs (ignoring white-space)
+    (?:
+      ("(?:[^"]|(?<=\\\\)")*")|     # Double-quoted string, which may contain slash-escaped quotes/slashes
+      (\'(?:[^\']|(?<=\\\\)\')*\')| # Single-quoted string, which may contain slash-escaped quotes/slashes
+      ([^\r\n]*?)                   # Non-quoted string
+    )\s*$                           # Stop at the next end of a line, ignoring trailing whitespace
+    @msx', $data, $matches, PREG_SET_ORDER)) {
+    foreach ($matches as $match) {
+      // Fetch the key and value string.
+      $i = 0;
+      foreach (array('key', 'value1', 'value2', 'value3') as $var) {
+      $$var = isset($match[++$i]) ? $match[$i] : '';
+      }
+      $value = stripslashes(substr($value1, 1, -1)) . stripslashes(substr($value2, 1, -1)) . $value3;
 
-		  // Parse array syntax.
-		  $keys = preg_split('/\]?\[/', rtrim($key, ']'));
-		  $last = array_pop($keys);
-		  $parent = &$info;
+      // Parse array syntax.
+      $keys = preg_split('/\]?\[/', rtrim($key, ']'));
+      $last = array_pop($keys);
+      $parent = &$info;
 
-		  // Create nested arrays.
-		  foreach ($keys as $key) {
-			if ($key == '') {
-			  $key = count($parent);
-			}
-			if (!isset($parent[$key]) || !is_array($parent[$key])) {
-			  $parent[$key] = array();
-			}
-			$parent = &$parent[$key];
-		  }
+      // Create nested arrays.
+      foreach ($keys as $key) {
+      if ($key == '') {
+        $key = count($parent);
+      }
+      if (!isset($parent[$key]) || !is_array($parent[$key])) {
+        $parent[$key] = array();
+      }
+      $parent = &$parent[$key];
+      }
 
-		  // Handle PHP constants.
-		  if (preg_match('/^\w+$/i', $value) && defined($value)) {
-			$value = constant($value);
-		  }
+      // Handle PHP constants.
+      if (preg_match('/^\w+$/i', $value) && defined($value)) {
+      $value = constant($value);
+      }
 
-		  // Insert actual value.
-		  if ($last == '') {
-			$last = count($parent);
-		  }
-		  $parent[$last] = $value;
-		}
-	  }
-
-	  return $info;
-	}
+      // Insert actual value.
+      if ($last == '') {
+      $last = count($parent);
+      }
+      $parent[$last] = $value;
+    }
+    }
+    drush_print_r($info);
+    return $info;
+  }
 }
-
- 
