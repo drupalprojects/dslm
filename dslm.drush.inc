@@ -827,7 +827,7 @@ function drush_dslm_remove_all() {
     drush_log(dt('!number symlinks removed.', array('!number' => $number_removed)), 'success');
   }
   else {
-    drush_print('There are no symlinks to remove.');
+    drush_log('There are no symlinks to remove.', 'ok');
   }
 }
 
@@ -849,7 +849,7 @@ function drush_dslm_remove_all_custom() {
     drush_log(dt('!number symlinks removed.', array('!number' => $number_removed)), 'success');
   }
   else {
-    drush_print('There are no symlinks to remove.');
+    drush_log('There are no symlinks to remove.', 'ok');
   }
 }
 
@@ -871,7 +871,7 @@ function drush_dslm_remove_all_contrib() {
     drush_log(dt('!number symlinks removed.', array('!number' => $number_removed)), 'success');
   }
   else {
-    drush_print('There are no symlinks to remove.');
+    drush_log('There are no symlinks to remove.', 'ok');
   }
 }
 
