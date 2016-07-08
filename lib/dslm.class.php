@@ -776,30 +776,26 @@ class Dslm {
     $root = getcwd();
     $i = 0;
 
-    // add individual symlinks for all modules, themes, and library directories
-    // that exist in source
-    $groups = array('custom', 'contrib');
-    foreach ($groups as $group) {
-      $project_types = array('modules', 'themes', 'libraries');
-      foreach ($project_types as $project_type) {
-        $dest_dir = "$root/sites/all/$project_type/$group/";
+    // Remove symlinks for all modules, themes, and library directories.
+    $project_types = array('modules', 'themes', 'libraries');
+    foreach ($project_types as $project_type) {
+      $dest_dir = "$root/sites/all/$project_type/";
 
-        // Check to make sure directory exists.
-        if (file_exists($dest_dir)) {
-          // Remove any existing symlinks
-          $existing_paths = $this->filesInDir($dest_dir);
-          // Check to see if there are any symlinks to remove, if not exit.
-          if (is_array($existing_paths)) {
-            foreach ($existing_paths as $path) {
-              if (is_link($dest_dir . $path)) {
-                $this->removeSymlink($dest_dir . $path);
-                $i++;
-              }
+      // Check to make sure directory exists.
+      if (file_exists($dest_dir)) {
+        // Remove any existing symlinks
+        $existing_paths = $this->filesInDir($dest_dir);
+        // Check to see if there are any symlinks to remove, if not exit.
+        if (is_array($existing_paths)) {
+          foreach ($existing_paths as $path) {
+            if (is_link($dest_dir . $path)) {
+              $this->removeSymlink($dest_dir . $path);
+              $i++;
             }
           }
-          else {
-            return;
-          }
+        }
+        else {
+          return;
         }
       }
     }
