@@ -113,6 +113,12 @@ function dslm_drush_command() {
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
   );
 
+  $items['dslm-add-package'] = array(
+    'description' => 'DSLM Add Project',
+    'arguments' => $arguments,
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
+  );
+
   $items['dslm-add-contrib'] = array(
     'description' => 'DSLM Add Contrib Project',
     'arguments' => $arguments,
@@ -654,6 +660,100 @@ function drush_dslm_add_contrib() {
     }
   }
 
+}
+
+/**
+ * Command callback. Adds symlink for project to sites/all/TYPE
+ */
+function drush_dslm_add_package() {
+  drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
+  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  if (!$dslm = _dslm_bootstrap()) {
+    return FALSE;
+  }
+
+  $base = _dslm_get_packages_base();
+
+  // Check to see that packages exists in dslm_base or is configured
+  if (!file_exists($base)) {
+    return drush_set_error('Directory not found. Place packages directory in dslm_base or define correct path in packages_base variable');
+  }
+
+  if (!$info = $dslm->siteInfo()) {
+    return drush_set_error($dslm->lastError());
+  }
+
+  $args = drush_get_arguments();
+
+  unset($args[0]);
+
+  $arg_list = implode(", ", $args);
+
+  $requests = pm_parse_arguments($args);
+
+  // pm_parse_project_version -> pm_parse_version in drush 7
+  if (function_exists(pm_parse_project_version)) {
+    $requests = pm_parse_project_version($requests);
+  }
+
+  foreach ($requests as $request) {
+
+    // pm_parse_project_version -> pm_parse_version in drush 7
+    // and no longer sets ['name']
+
+    if (function_exists(pm_parse_version)) {
+      $request_name = $request;
+      $request = pm_parse_version($request);
+      $request['name'] = $request_name;
+    }
+
+    // check to see if package is in dslm_base/packages or a package_base is defined
+    // to determine if this is a module, theme, or library
+
+    //only check if it hasn't been set
+    $request['type'] = FALSE;
+
+    // this code could be condensed, but it works
+    if(file_exists($base . '/modules/' . $request['name'])) {
+      $request['type'] = 'modules';
+    }
+
+    if(!$request['type'] && file_exists($base . '/themes/' . $request['name'])) {
+      $request['type'] = 'themes';
+    }
+
+    if(!$request['type'] && file_exists($base . '/libraries/' . $request['name'])) {
+      $request['type'] = 'libraries';
+    }
+
+    if (!$request['type']) {
+      return drush_set_error($request['name'] . ' not found in modules, themes, or libraries within packages');
+    }
+
+    // check to see if we want a specific version
+    if ($request['version']) {
+      //and that the version we want exists in dslm_base
+      if(!file_exists($base . $request['type'] . '/' . $request['name'] . '/' . $request['name'] . '-' . $request['version'])) {
+        return drush_set_error('Version' . $request['version'] . ' not found for ' . $request['name']);
+      }
+    }
+
+    // if there is no version specified, use current
+    if (!$request['version']) {
+       $request['version'] = 'current';
+       if(!file_exists($base . $request['type'] . '/' . $request['name'] . '/current')) {
+        return drush_set_error('Current not found for ' . $request['name']);
+      }
+    }
+
+    // Run the DSLM managePackage method to add the project or deal with an error
+    if ($dslm->managePackage($request['name'], $request['version'], $request['type'], $base)) {
+      drush_log(dt('Symlinks for ' . $request['name'] . ' added.', array('!projects' => $arg_list)), 'success');
+    }
+    else {
+      return drush_set_error($dslm->lastError());
+    }
+  }
 }
 
 /**

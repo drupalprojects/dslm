@@ -597,7 +597,49 @@ class Dslm {
     // Return any profiles managed within this directory
     return $managed_profiles;
   }
-  
+
+  /**
+   * Manage Package
+   *
+   * @param string $name
+   *  The profile name
+   * @param string $version
+   *  The profile version
+   * @param string $type
+   *  module, theme, or library
+   *
+   * @return string
+   *  Returns the profile string we just switched to.
+   */
+  public function managePackage($name, $version, $type, $base) {
+    // Set some path variables to make things easier
+    $dir = getcwd();
+
+    $dest_dir = "$dir/sites/all/$type/";
+    $source_dir = "$base/$type/";
+
+    // if current?
+    if ($version == 'current') {
+      $source_name = "$name/current";
+    }
+    else {
+      $source_name = "$name/$name-$version";
+    }
+
+    if (file_exists($dest_dir. $name)) {
+      //remove it and readd it because we might be changing the version?
+      $this->removeSymlink($dest_dir . $name);
+    }
+
+    // Relative path between the two folders. Original relpath does not work...
+    // created getRelativePath vs. altering
+    $relpath = $this->getRelativePath($source_dir, $dest_dir);
+
+    // Working symlink
+    symlink($relpath . $source_name, $dest_dir . $name);
+    return "$name-$version";
+  }
+
   /**
    * Manage Contrib Package
    *
@@ -702,6 +744,7 @@ class Dslm {
       // /data/code/packages_base/custom/cu_advanced_site_building_bundle/libraries/custom/cu_advanced_site_building_bundle/cu_advanced_site_building_bundle.info
       if (file_exists($project_info_file)) {
         $info = $this->parseInfoFormat(file_get_contents($project_info_file));
+        drush_print_r("thing to explode: " . $info['bundle_contrib_packages']);
         $packages = array_map('trim', explode(',', $info['bundle_contrib_packages']));
         foreach($packages as $package) {
           if ($package) { // there is always an item in this array, so check for null
