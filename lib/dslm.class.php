@@ -429,8 +429,6 @@ class Dslm {
       mkdir("$dest_dir/sites");
       mkdir("$dest_dir/sites/all");
       mkdir("$dest_dir/sites/all/modules");
-      mkdir("$dest_dir/sites/all/modules/contrib");
-      mkdir("$dest_dir/sites/all/modules/custom");
       mkdir("$dest_dir/sites/all/libraries");
       mkdir("$dest_dir/sites/all/themes");
       mkdir("$dest_dir/sites/default");
