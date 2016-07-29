@@ -510,30 +510,30 @@ class Dslm {
     }
 
     // Set some path variables to make things easier
-    $base = $this->base;
+    $profiles_base = $this->profiles_base;
     $dest_profiles_dir = "$dir/profiles";
-    $source_profile_dir = "$base/profiles/$name-$version";
+    $source_profile_dir = "$profiles_base/$name-$version";
 
     if (!$upgrade) {
-      if (file_exists("$dir/profiles/$name")) {
+      if (file_exists("$dest_profiles_dir/$name")) {
         $this->last_error = "The profile '$name' is already linked to this site.";
         return FALSE;
       }
     }
     else {
-      if (!file_exists("$dir/profiles/$name")) {
+      if (!file_exists("$dest_profiles_dir/$name")) {
         $this->last_error = "Attempting to update profile that doesn't exist: $name.";
         return FALSE;
       }
       // Remove the previous symlink.
-      $this->removeSymlink("$dir/profiles/$name");
+      $this->removeSymlink("$dest_profiles_dir/$name");
     }
 
     // Relative path between the two profiles folders
-    $relpath = $this->relpath("$base/profiles", "$dir/profiles");
+    $relpath = $this->relpath("$profiles_base", "$dest_profiles_dir");
 
     // Working symlink
-    symlink("$relpath/$name-$version", "$dir/profiles/$name");
+    symlink("$relpath/$name-$version", "$dest_profiles_dir/$name");
 
     return "$name-$version";
   }
@@ -542,7 +542,7 @@ class Dslm {
     if (!$dir) {
       $dir = getcwd();
     }
-    $profiles_dir = "$dir/profiles";
+    $profiles_dir = "$dest_profiles_dir";
     if (!file_exists("$profiles_dir/$profile_name")) {
       $this->last_error = 'Invalid profile given.';
       return FALSE;
@@ -576,7 +576,6 @@ class Dslm {
     }
 
     // Pull a list of profiles in the base
-    $profiles = $this->getProfiles();
     $profiles = $this->getProfiles();
 
     // Iterate through the local profiles
@@ -914,23 +913,23 @@ class Dslm {
   }
 
   /**
-   * Returns the dslm-pacakge-base from $this->package-base
+   * Returns the dslm-profiles-base from $this->profiles_base
    *
    * @return string
-   *  Return $this->packages-base
+   *  Return $this->profiles_base
    */
   public function getProfilesBase() {
-    return $this->profiles-base;
+    return $this->profiles_base;
   }
 
   /**
-   * Returns the dslm-package-base from $this->package-base
+   * Returns the dslm-packages-base from $this->packages_base
    *
    * @return string
-   *  Return $this->packages-base
+   *  Return $this->packages_base
    */
   public function getPackagesBase() {
-    return $this->packages-base;
+    return $this->packages_base;
   }
 
   /**
