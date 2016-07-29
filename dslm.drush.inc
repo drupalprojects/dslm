@@ -274,7 +274,7 @@ function drush_dslm_profiles() {
 }
 
 /**
- * Command callback. Creates a new dslm Drupal site.
+ * Command callback. Creates a new DSLM Drupal site.
  */
 function drush_dslm_new() {
   // Pull the args
@@ -286,7 +286,7 @@ function drush_dslm_new() {
     $site_dest = $args[1];
   }
 
-  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
@@ -307,7 +307,7 @@ function drush_dslm_new() {
     $core = isset($args[2]) ? $args[2] : FALSE;
   }
 
-  // If we still don't have a core string try to get on iteractively
+  // If we still don't have a core string try to get on interactively.
   if (!$core) {
     $core_list = $dslm->getCores();
     $pick_core = drush_choice($core_list['all']);
@@ -337,7 +337,7 @@ function drush_dslm_new() {
  * that a lower directory is a drupal root in other ways than bootstrapping.
  */
 function drush_dslm_convert_core() {
-  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
@@ -406,7 +406,7 @@ function drush_dslm_convert_core() {
  * Command callback. Prompts the user to switch the dslm core.
  */
 function drush_dslm_switch_core() {
-  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
@@ -444,7 +444,7 @@ function drush_dslm_switch_core() {
  * Command callback. Adds a profile
  */
 function drush_dslm_add_profile() {
-  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
@@ -493,7 +493,7 @@ function drush_dslm_add_profile() {
     $profile_version = $latest['dev'];
   }
 
-  // If we still dont have a version number, prompt the user with the
+  // If we still don't have a version number, prompt the user with the
   // available options.
   if (!$profile_version) {
     $choices = array();
@@ -503,12 +503,12 @@ function drush_dslm_add_profile() {
     $profile_version = drush_choice($choices);
   }
 
-  // Validate that the profile name and version matches a dslm managed profile.
+  // Validate that the profile name and version matches a DSLM managed profile.
   if (!in_array($profile_version, $profiles[$profile_name]['all'])) {
     return drush_set_error(dt('Invalid profile version given.'));
   }
 
-  // Determine if we are upgrading a currently managed dslm profile.
+  // Determine if we are upgrading a currently managed DSLM profile.
   $upgrade = drush_get_option('upgrade', FALSE);
 
   // Run the DSLM manageProfile method to add the profile or deal with an error
@@ -529,7 +529,7 @@ function drush_dslm_add_profile() {
  * Command callback. Removes a profile.
  */
 function drush_dslm_remove_profile() {
-  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
@@ -572,7 +572,7 @@ function drush_dslm_remove_profile() {
  */
 function drush_dslm_add_contrib() {
   drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
-  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
@@ -667,7 +667,7 @@ function drush_dslm_add_contrib() {
  */
 function drush_dslm_add_package() {
   drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
-  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
@@ -761,7 +761,7 @@ function drush_dslm_add_package() {
  */
 function drush_dslm_add_custom() {
   drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
-  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
@@ -786,7 +786,7 @@ function drush_dslm_add_custom() {
   $requests = pm_parse_arguments($args);
 
   foreach ($requests as $request) {
-	$count = 0;
+    $count = 0;
 
     // this code could be condensed, but it works
     if(!file_exists($base . '/custom/' . $request)) {
@@ -799,14 +799,14 @@ function drush_dslm_add_custom() {
       drush_log(dt('!count symlinks for !request added.', array('!request' => $request, '!count' => $count)), 'success');
     }
     else {
-	  if (!$count) {
-	    drush_log(dt('No new symlinks add.'));
-      } else {
+      if (!$count) {
+        drush_log(dt('No new symlinks add.'));
+      }
+      else {
         return drush_set_error($dslm->lastError());
       }
     }
   }
-
 }
 
 /**
@@ -814,7 +814,7 @@ function drush_dslm_add_custom() {
  */
 function drush_dslm_remove_all() {
   drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
-  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  // Bootstrap DSLM, this grabs the instantiated and configured DSLM library object
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
@@ -836,7 +836,7 @@ function drush_dslm_remove_all() {
  */
 function drush_dslm_remove_all_custom() {
   drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
-  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
@@ -858,7 +858,7 @@ function drush_dslm_remove_all_custom() {
  */
 function drush_dslm_remove_all_contrib() {
   drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
-  // Bootstrap dslm, this grabs the instantiated and configured Dslm library object
+  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
   if (!$dslm = _dslm_bootstrap()) {
     return FALSE;
   }
@@ -878,7 +878,7 @@ function drush_dslm_remove_all_contrib() {
 /**
  * Internal bootstrap function
  * @return object
- *  Returns an instantiated Dslm object
+ *  Returns an instantiated DSLM object
  */
 function _dslm_bootstrap() {
   //@TODO: Check can't be on just dslm_base... needs either dslm_base or both cores and profiles
@@ -898,7 +898,7 @@ function _dslm_bootstrap() {
     $packages_base = $base . '/packages/';
   }
 
-  // Instantiate the dslm object
+  // Instantiate the DSLM object
   $dslm = new Dslm($base, $cores_base, $profiles_base, $packages_base);
 
   // If the base is bad on construct an error will be set
@@ -910,7 +910,7 @@ function _dslm_bootstrap() {
 }
 
 /**
- * Internal helper function to get the dslm drupal base folder
+ * Internal helper function to get the DSLM drupal base folder
  * Reads the following locations in order:
  * - The cli switch --dslm-base=base
  * - The drushrc.php file $conf['dslm_base'] = /path/to/base;

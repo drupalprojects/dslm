@@ -76,7 +76,7 @@ class Dslm {
    *  The base path containing the cores, profiles and packages
    * @param $cores_base
    *  The base path containing only cores
-   * @param $profiles
+   * @param $profiles_base
    *  The base path containing only profiles
    * @param $packages_base
    *  The base path containing custom and contrib packages
@@ -87,7 +87,7 @@ class Dslm {
     if ($valid_base = $this->validateDir($base)) {
       $this->base = $valid_base;
     } else {
-      $this->last_error = sprintf("The base dir \"%s\" is invalid. Please see the dslm README for more information on the dslm-base directory.", $base);
+      $this->last_error = sprintf("The base dir \"%s\" is invalid. Please see the DSLM README for more information on the dslm-base directory.", $base);
     }
 
     // @TODO: Validate the other bases?
