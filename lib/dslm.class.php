@@ -338,7 +338,7 @@ class Dslm {
    */
   public function newSite($dest_dir, $core = FALSE, $force = FALSE) {
     // Load the base
-    $base = $this->getBase();
+    $base = $this->getCoresBase();
 
     // Dest Directory creation and validation
     // TODO: Much more validation needed here, wire in checking for empty, etc.
@@ -373,8 +373,8 @@ class Dslm {
    *  Returns the core it switched to.
    */
   public function switchCore($core, $dest_dir = FALSE, $force = FALSE) {
-    // Pull the base
-    $base = $this->getBase();
+    // Pull the cores base
+    $cores_base = $this->getCoresBase();
 
     // Get the core if it wasn't specified on the CLI
     if (!$this->isValidCore($core)) {
@@ -398,7 +398,7 @@ class Dslm {
       $dest_dir = realpath($dest_dir);
     }
 
-    $source_dir = "$base/cores/$core";
+    $source_dir = "$cores_base/$core";
 
     // Remove any existing symlinks in the dest dir that link back to a core folder
     $this->removeCoreLinks($dest_dir);
@@ -459,7 +459,7 @@ class Dslm {
     // Support for shared sites/all sub-directories
     $core_version = explode('.', $core);
     $core_version = $core_version[0] . '.x';
-    $shared_dir = "$base/shared/$core_version";
+    $shared_dir = "$cores_base/shared/$core_version";
     // ensure we have a shared folder worth looking for
     if (file_exists($this->getBase() . '/shared/' . $core_version)) {
       // Look for folders that we want to include
@@ -904,13 +904,13 @@ class Dslm {
   }
 
   /**
-   * Returns the dslm-pacakge-base from $this->package-base
+   * Returns the dslm-cores-base from $this->cores_base
    *
    * @return string
-   *  Return $this->packages-base
+   *  Return $this->cores_base
    */
   public function getCoresBase() {
-    return $this->cores-base;
+    return $this->cores_base;
   }
 
   /**
