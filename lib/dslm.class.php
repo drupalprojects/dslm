@@ -604,6 +604,8 @@ class Dslm {
    *  The profile version
    * @param string $type
    *  module, theme, or library
+   * @param string $base
+   *  base location for packages.
    *
    * @return string
    *  Returns the profile string we just switched to.
