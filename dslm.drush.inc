@@ -119,32 +119,8 @@ function dslm_drush_command() {
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
   );
 
-  $items['dslm-add-contrib'] = array(
-    'description' => 'DSLM Add Contrib Project',
-    'arguments' => $arguments,
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
-  );
-
-  $items['dslm-add-custom'] = array(
-    'description' => 'DSLM Add Custom Project',
-    'arguments' => $arguments,
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
-  );
-
-  $items['dslm-remove-all'] = array(
+  $items['dslm-remove-all-packages'] = array(
     'description' => 'DSLM Remove All Symlinks for Custom and Contrib Projects',
-    'arguments' => $arguments,
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
-  );
-
-  $items['dslm-remove-all-custom'] = array(
-    'description' => 'DSLM Remove All Symlinks for Custom Projects',
-    'arguments' => $arguments,
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
-  );
-
-  $items['dslm-remove-all-contrib'] = array(
-    'description' => 'DSLM Remove All Symlinks for Contrib Projects',
     'arguments' => $arguments,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
   );
@@ -568,101 +544,6 @@ function drush_dslm_remove_profile() {
 }
 
 /**
- * Command callback. Adds symlink for custom project to sites/all
- */
-function drush_dslm_add_contrib() {
-  drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
-  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
-  if (!$dslm = _dslm_bootstrap()) {
-    return FALSE;
-  }
-
-  $base = _dslm_get_packages_base();
-
-  //check to see that packages exists in dslm_base or is configured
-  if (!file_exists($base)) {
-    return drush_set_error('Directory not found. Place packages directory in dslm_base or define correct path in packages_base variable');
-  }
-
-  if (!$info = $dslm->siteInfo()) {
-    return drush_set_error($dslm->lastError());
-  }
-
-  $args = drush_get_arguments();
-
-  unset($args[0]);
-
-  $arg_list = implode(", ", $args);
-
-  $requests = pm_parse_arguments($args);
-
-  // pm_parse_project_version -> pm_parse_version in drush 7
-  if (function_exists(pm_parse_project_version)) {
-    $requests = pm_parse_project_version($requests);
-  }
-
-  foreach ($requests as $request) {
-
-    // pm_parse_project_version -> pm_parse_version in drush 7
-    // and no longer sets ['name']
-
-    if (function_exists(pm_parse_version)) {
-      $request_name = $request;
-      $request = pm_parse_version($request);
-      $request['name'] = $request_name;
-    }
-
-    // check to see if package is in dslm_base/packages or a package_base is defined
-    // to determine if this is a module, theme, or library
-
-    //only check if it hasn't been set
-    $request['type'] = FALSE;
-
-    // this code could be condensed, but it works
-    if(file_exists($base . '/contrib/modules/' . $request['name'])) {
-      $request['type'] = 'modules';
-    }
-
-    if(!$request['type'] && file_exists($base . '/contrib/themes/' . $request['name'])) {
-      $request['type'] = 'themes';
-    }
-
-    if(!$request['type'] && file_exists($base . '/contrib/libraries/' . $request['name'])) {
-      $request['type'] = 'libraries';
-    }
-
-    if (!$request['type']) {
-      return drush_set_error($request['name'] . ' not found in modules, themes, or libraries within packages/contrib');
-    }
-
-    // check to see if we want a specific version
-    if ($request['version']) {
-      //and that the version we want exists in dslm_base
-      if(!file_exists($base . '/contrib/' . $request['type'] . '/' . $request['name'] . '/' . $request['name'] . '-' . $request['version'])) {
-        return drush_set_error('Version' . $request['version'] . ' not found for ' . $request['name']);
-      }
-    }
-
-    // if there is no version specified, use current
-    if (!$request['version']) {
-       $request['version'] = 'current';
-       if(!file_exists($base . '/contrib/' . $request['type'] . '/' . $request['name'] . '/current')) {
-        return drush_set_error('Current not found for ' . $request['name']);
-      }
-    }
-
-    // Run the DSLM manageContribPackage method to add the project or deal with an error
-    if ($dslm->manageContribPackage($request['name'], $request['version'], $request['type'], $base)) {
-      drush_log(dt('Symlinks for ' . $request['name'] . ' added.', array('!projects' => $arg_list)), 'success');
-    }
-    else {
-      return drush_set_error($dslm->lastError());
-    }
-  }
-
-}
-
-/**
  * Command callback. Adds symlink for project to sites/all/TYPE
  */
 function drush_dslm_add_package() {
@@ -692,7 +573,7 @@ function drush_dslm_add_package() {
   $requests = pm_parse_arguments($args);
 
   // pm_parse_project_version -> pm_parse_version in drush 7
-  if (function_exists(pm_parse_project_version)) {
+  if (function_exists('pm_parse_project_version')) {
     $requests = pm_parse_project_version($requests);
   }
 
@@ -701,7 +582,7 @@ function drush_dslm_add_package() {
     // pm_parse_project_version -> pm_parse_version in drush 7
     // and no longer sets ['name']
 
-    if (function_exists(pm_parse_version)) {
+    if (function_exists('pm_parse_version')) {
       $request_name = $request;
       $request = pm_parse_version($request);
       $request['name'] = $request_name;
@@ -727,7 +608,7 @@ function drush_dslm_add_package() {
     }
 
     if (!$request['type']) {
-      return drush_set_error($request['name'] . ' not found in modules, themes, or libraries within packages');
+      return drush_set_error($request['name'] . ' not found in modules, themes, or libraries within packages_base');
     }
 
     // check to see if we want a specific version
@@ -741,7 +622,7 @@ function drush_dslm_add_package() {
     // if there is no version specified, use current
     if (!$request['version']) {
        $request['version'] = 'current';
-       if(!file_exists($base. '/' . $request['type'] . '/' . $request['name'] . '/current')) {
+       if(!file_exists($base. '/' . $request['type'] . '/' . $request['name'] . '/' .$request['name'] . '-current')) {
         return drush_set_error('Current not found for ' . $request['name']);
       }
     }
@@ -757,62 +638,9 @@ function drush_dslm_add_package() {
 }
 
 /**
- * Command callback. Adds symlink for custom project to sites/all/TYPE/custom
- */
-function drush_dslm_add_custom() {
-  drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
-  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
-  if (!$dslm = _dslm_bootstrap()) {
-    return FALSE;
-  }
-
-  $base = _dslm_get_packages_base();
-
-  //check to see that packages exists in dslm_base or is configured
-  if (!file_exists($base)) {
-    return drush_set_error('Directory not found. Place packages directory in dslm_base or define correct path in packages_base variable');
-  }
-
-  if (!$info = $dslm->siteInfo()) {
-    return drush_set_error($dslm->lastError());
-  }
-
-  $args = drush_get_arguments();
-
-  unset($args[0]);
-
-  $arg_list = implode(", ", $args);
-
-  $requests = pm_parse_arguments($args);
-
-  foreach ($requests as $request) {
-    $count = 0;
-
-    // this code could be condensed, but it works
-    if(!file_exists($base . '/custom/' . $request)) {
-      return drush_set_error($request . ' not found in packages/custom');
-    }
-
-    // Run the DSLM manageContribPackage method to add the project or deal with an error
-    if ($count = $dslm->manageCustomPackage($request, $base)) {
-      drush_print_r('running...');
-      drush_log(dt('!count symlinks for !request added.', array('!request' => $request, '!count' => $count)), 'success');
-    }
-    else {
-      if (!$count) {
-        drush_log(dt('No new symlinks add.'));
-      }
-      else {
-        return drush_set_error($dslm->lastError());
-      }
-    }
-  }
-}
-
-/**
  * Command callback. Removes symlinks for projects to sites/all/TYPE/custom and sites/all/TYPE/contrib
  */
-function drush_dslm_remove_all() {
+function drush_dslm_remove_all_packages() {
   drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
   // Bootstrap DSLM, this grabs the instantiated and configured DSLM library object
   if (!$dslm = _dslm_bootstrap()) {
@@ -824,50 +652,6 @@ function drush_dslm_remove_all() {
   }
 
   if($number_removed = $dslm->removeAllPackages()) {
-    drush_log(dt('!number symlinks removed.', array('!number' => $number_removed)), 'success');
-  }
-  else {
-    drush_log('There are no symlinks to remove.', 'ok');
-  }
-}
-
-/**
- * Command callback. Adds symlink for custom project to sites/all/TYPE/custom
- */
-function drush_dslm_remove_all_custom() {
-  drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
-  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
-  if (!$dslm = _dslm_bootstrap()) {
-    return FALSE;
-  }
-
-  if (!$info = $dslm->siteInfo()) {
-    return drush_set_error($dslm->lastError());
-  }
-
-  if($number_removed = $dslm->removeAllCustomPackages()) {
-    drush_log(dt('!number symlinks removed.', array('!number' => $number_removed)), 'success');
-  }
-  else {
-    drush_log('There are no symlinks to remove.', 'ok');
-  }
-}
-
-/**
- * Command callback. Adds symlink for contrib project to sites/all/TYPE/contrib
- */
-function drush_dslm_remove_all_contrib() {
-  drush_include(DRUSH_BASE_PATH . '/commands/pm', 'pm.drush');
-  // Bootstrap dslm, this grabs the instantiated and configured DSLM library object
-  if (!$dslm = _dslm_bootstrap()) {
-    return FALSE;
-  }
-
-  if (!$info = $dslm->siteInfo()) {
-    return drush_set_error($dslm->lastError());
-  }
-
-  if($number_removed = $dslm->removeAllContribPackages()) {
     drush_log(dt('!number symlinks removed.', array('!number' => $number_removed)), 'success');
   }
   else {

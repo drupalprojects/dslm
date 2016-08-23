@@ -322,7 +322,7 @@ class Dslm {
   }
 
   /**
-   * Create a new drupal site
+   * Create a new Drupal site
    *
    * @param string $dest_dir
    *  The destination directory for the new site
@@ -619,7 +619,7 @@ class Dslm {
 
     // if current?
     if ($version == 'current') {
-      $source_name = "$name/current";
+      $source_name = "$name/$name-current";
     }
     else {
       $source_name = "$name/$name-$version";
@@ -640,130 +640,6 @@ class Dslm {
   }
 
   /**
-   * Manage Contrib Package
-   *
-   * @param string $name
-   *  The profile name
-   * @param string $version
-   *  The profile version
-   * @param string $type
-   *  module, theme, or library
-   *
-   * @return string
-   *  Returns the profile string we just switched to.
-   */
-  public function manageContribPackage($name, $version, $type, $base) {
-    //drush_print($type);
-    // Set some path variables to make things easier
-    $dir = getcwd();
-
-    $dest_dir = "$dir/sites/all/$type/";
-    if ($type == 'modules') {
-      $dest_dir .= "contrib/";
-    }
-    $source_dir = "$base/contrib/$type/";
-
-    // if current?
-    if ($version == 'current') {
-      $source_name = "$name/current";
-    }
-    else {
-      $source_name = "$name/$name-$version";
-    }
-
-    if (file_exists($dest_dir. $name)) {
-      //remove it and readd it because we might be changing the version?
-      $this->removeSymlink($dest_dir . $name);
-    }
-
-    // Relative path between the two folders. Original relpath
-    // does not work... created getRelativePath vs. altering
-    $relpath = $this->getRelativePath($source_dir, $dest_dir);
-
-    //drush_print($relpath);
-    //drush_print($dest_dir);
-    // Working symlink
-    symlink($relpath . $source_name, $dest_dir . $name);
-    return $name . '-' . $version;
-  }
-
-   /**
-   * Manage Custom Package
-   *
-   * @param string $name
-   *  The profile name
-   *
-   * @return string
-   *  Returns the profile string we just switched to.
-   */
-  public function manageCustomPackage($name, $base) {
-
-    // Set some path variables to make things easier
-    $root = getcwd();
-    $i = 0;
-    $source_dir = "$base/custom/$name";
-
-    // add individual symlinks for all modules, themes, and library directories
-    // that exist in source
-    $types = array('modules', 'themes', 'libraries');
-    foreach ($types as $type) {
-
-      $dest_dir = "$root/sites/all/$type/custom/";
-
-      //check to see if the custom dir exists in the target
-      if (!file_exists($root . '/sites/all/' . $type . '/custom/')) {
-        mkdir($root . '/sites/all/' . $type . '/custom/');
-      }
-
-      // don't try to read themes or libraries if they don't exist in project
-      if (file_exists($source_dir . '/' . $type . '/custom')) {
-        $dirs = $this->filesInDir($source_dir . '/' . $type . '/custom');
-
-        foreach($dirs as $dir) {
-          if (!file_exists($dest_dir .  $dir)) {
-            // Relative path between the two folders. Original relpath
-            // does not work... created getRelativePath vs. altering
-            $relpath = $this->getRelativePath($source_dir, $dest_dir .  $dir);
-
-            symlink($relpath . $type . '/custom/' . $dir, $dest_dir . $dir);
-            $i++;
-          }
-        }
-      }
-    }
-
-    // only enable if root custom module exists... otherwise drush
-    // will try to download a project w/ the same name from D.O.
-    //if (file_exists($root . '/sites/all/modules/custom/' . $name)) {
-
-      // Add additional symlinks from packages if bundle_packages defined
-      // @TODO: Need logic to prevent recursion
-      $project_info_file = $source_dir . '/modules/custom/' . $name . '/' . $name . '.info';
-      // parse for bundle_packages
-      // /data/code/packages_base/custom/cu_advanced_site_building_bundle/libraries/custom/cu_advanced_site_building_bundle/cu_advanced_site_building_bundle.info
-      if (file_exists($project_info_file)) {
-        $info = $this->parseInfoFormat(file_get_contents($project_info_file));
-        drush_print_r("thing to explode: " . $info['bundle_contrib_packages']);
-        $packages = array_map('trim', explode(',', $info['bundle_contrib_packages']));
-        foreach($packages as $package) {
-          if ($package) { // there is always an item in this array, so check for null
-            drush_print_r('Adding symlink for bundle package dependency for ' . $package);
-            //@TODO: more logic needed for version and anything other than modules
-            $this->manageContribPackage($package, 'current', 'modules', $base);
-          }
-        }
-      }
-
-      // Enable ONLY the root module... treat like a profile
-      // Anything else that needs to be enabled should be done within these as
-      // a dependecy or in an update hook
-      //drush_invoke_process("@self", "pm-enable", array($name));
-    //}
-
-    return $i;
-  }
-
-  /**
    * Remove all packages
    *
    * @return int
@@ -779,86 +655,6 @@ class Dslm {
     $project_types = array('modules', 'themes', 'libraries');
     foreach ($project_types as $project_type) {
       $dest_dir = "$root/sites/all/$project_type/";
-
-      // Check to make sure directory exists.
-      if (file_exists($dest_dir)) {
-        // Remove any existing symlinks
-        $existing_paths = $this->filesInDir($dest_dir);
-        // Check to see if there are any symlinks to remove, if not exit.
-        if (is_array($existing_paths)) {
-          foreach ($existing_paths as $path) {
-            if (is_link($dest_dir . $path)) {
-              $this->removeSymlink($dest_dir . $path);
-              $i++;
-            }
-          }
-        }
-        else {
-          return;
-        }
-      }
-    }
-
-    return $i;
-  }
-
-   /**
-   * Remove all Custom Packages
-   *
-   * @return int
-   *  Returns the number of symlinks deleted
-   */
-  public function removeAllCustomPackages() {
-
-    // Set some path variables to make things easier
-    $root = getcwd();
-    $i = 0;
-
-    // add individual symlinks for all modules, themes, and library directories
-    // that exist in source
-    $types = array('modules', 'themes', 'libraries');
-    foreach ($types as $type) {
-      $dest_dir = "$root/sites/all/$type/custom/";
-
-      // Check to make sure directory exists.
-      if (file_exists($dest_dir)) {
-        // Remove any existing symlinks
-        $existing_paths = $this->filesInDir($dest_dir);
-        // Check to see if there are any symlinks to remove, if not exit.
-        if (is_array($existing_paths)) {
-          foreach ($existing_paths as $path) {
-            if (is_link($dest_dir . $path)) {
-              $this->removeSymlink($dest_dir . $path);
-              $i++;
-            }
-          }
-        }
-        else {
-          return;
-        }
-      }
-    }
-
-    return $i;
-  }
-
-  /**
-   * Remove all Contrib Packages
-   *
-   * @return int
-   *  Returns the number of symlinks deleted
-   */
-  public function removeAllContribPackages() {
-
-    // Set some path variables to make things easier
-    $root = getcwd();
-    $i = 0;
-
-    // add individual symlinks for all modules, themes, and library directories
-    // that exist in source
-    $types = array('modules', 'themes', 'libraries');
-    foreach ($types as $type) {
-      $dest_dir = "$root/sites/all/$type/contrib/";
 
       // Check to make sure directory exists.
       if (file_exists($dest_dir)) {
@@ -1324,72 +1120,5 @@ class Dslm {
       }
     }
     return FALSE;
-  }
-
-  /**
-   * Check for
-   *
-   * @param $data
-   *   A string to parse.
-   *
-   * @return
-   *   The info array.
-   *
-   * @see drupal_parse_info_file()
-   */
-  public function parseInfoFormat($data) {
-    $info = array();
-
-    if (preg_match_all('
-    @^\s*                           # Start at the beginning of a line, ignoring leading whitespace
-    ((?:
-      [^=;\[\]]|                    # Key names cannot contain equal signs, semi-colons or square brackets,
-      \[[^\[\]]*\]                  # unless they are balanced and not nested
-    )+?)
-    \s*=\s*                         # Key/value pairs are separated by equal signs (ignoring white-space)
-    (?:
-      ("(?:[^"]|(?<=\\\\)")*")|     # Double-quoted string, which may contain slash-escaped quotes/slashes
-      (\'(?:[^\']|(?<=\\\\)\')*\')| # Single-quoted string, which may contain slash-escaped quotes/slashes
-      ([^\r\n]*?)                   # Non-quoted string
-    )\s*$                           # Stop at the next end of a line, ignoring trailing whitespace
-    @msx', $data, $matches, PREG_SET_ORDER)) {
-    foreach ($matches as $match) {
-      // Fetch the key and value string.
-      $i = 0;
-      foreach (array('key', 'value1', 'value2', 'value3') as $var) {
-      $$var = isset($match[++$i]) ? $match[$i] : '';
-      }
-      $value = stripslashes(substr($value1, 1, -1)) . stripslashes(substr($value2, 1, -1)) . $value3;
-
-      // Parse array syntax.
-      $keys = preg_split('/\]?\[/', rtrim($key, ']'));
-      $last = array_pop($keys);
-      $parent = &$info;
-
-      // Create nested arrays.
-      foreach ($keys as $key) {
-      if ($key == '') {
-        $key = count($parent);
-      }
-      if (!isset($parent[$key]) || !is_array($parent[$key])) {
-        $parent[$key] = array();
-      }
-      $parent = &$parent[$key];
-      }
-
-      // Handle PHP constants.
-      if (preg_match('/^\w+$/i', $value) && defined($value)) {
-      $value = constant($value);
-      }
-
-      // Insert actual value.
-      if ($last == '') {
-      $last = count($parent);
-      }
-      $parent[$last] = $value;
-    }
-    }
-    drush_print_r($info);
-    return $info;
   }
 }
