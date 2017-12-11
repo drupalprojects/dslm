@@ -572,26 +572,14 @@ function drush_dslm_add_package() {
 
   $requests = pm_parse_arguments($args);
 
-  // pm_parse_project_version -> pm_parse_version in drush 7
-  if (function_exists('pm_parse_project_version')) {
-    $requests = pm_parse_project_version($requests);
-  }
-
   foreach ($requests as $request) {
 
-    // pm_parse_project_version -> pm_parse_version in drush 7
-    // and no longer sets ['name']
-
-    if (function_exists('pm_parse_version')) {
-      $request_name = $request;
-      $request = pm_parse_version($request);
-      $request['name'] = $request_name;
+    if (function_exists('pm_parse_request')) {
+      $request = pm_parse_request($request);
     }
 
     // check to see if package is in dslm_base/packages or a package_base is defined
     // to determine if this is a module, theme, or library
-
-    //only check if it hasn't been set
     $request['type'] = FALSE;
 
     // this code could be condensed, but it works

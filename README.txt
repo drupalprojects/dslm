@@ -5,7 +5,7 @@ DSLM is a set of Drush commands for managing symlinking Drupal sites back to a c
 
 Dependencies
 ============
- - Drush: http://drupal.org/project/drush
+ - Drush (7.0+): http://drupal.org/project/drush
 
 
 Configuration and Installation
