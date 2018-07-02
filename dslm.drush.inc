@@ -652,7 +652,7 @@ function drush_dslm_remove_all_packages() {
   }
 
   if($number_removed = $dslm->removeAllPackages()) {
-    drush_log(dt('!number symlinks removed.', array('!number' => $number_removed)), 'success');
+    drush_log(dt('!number symlinks and directories removed.', array('!number' => $number_removed)), 'success');
   }
   else {
     drush_log('There are no symlinks to remove.', 'ok');
