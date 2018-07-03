@@ -652,6 +652,7 @@ class Dslm {
     $i = 0;
 
     $targets = "$root/sites/all/*";
+    $objects = scandir($targets);
     foreach($targets as $target) { // iterate files
       if(is_file($target)) {
         unlink($target); // delete file
@@ -659,7 +660,6 @@ class Dslm {
       }
       // rmdir requires the dir to be empty, so we need to do that first
       elseif(is_dir($target)) {
-        $objects = scandir($target);
         foreach ($objects as $object) {
           if ($object != "." && $object != "..") {
             if (is_dir($dir."/".$object))
